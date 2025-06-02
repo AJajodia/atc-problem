@@ -35,7 +35,7 @@ for (i in 1:sector_count) {
   }
 }
 
-airports <- tibble(sector = c(1:sector_count^2), lat = lats, long = longs)
+airports <- tibble(sector = c(1:sector_count^2), lat = lats, long = longs, holding_time, turnaround_time, sector_capacity, ground_cost, air_cost, min_time, time_buffer, depart_capacity, arrival_capacity, sector_count, airspeed)
 ```
 
 ```{r}
@@ -57,5 +57,10 @@ for (i in 1:20) {
 }
 
 timetable <- tibble(depart_airport = depart_airport, arrive_airport = arrive_airport, depart_time = departure_times, arrival_time = arrival_times)
+```
+
+```{r}
+write.csv(airports, "airports.csv")
+write.csv(timetable, "timetable.csv")
 ```
 
