@@ -2,5 +2,5 @@ using Random
 using DataFrames
 using CSV
 
-airports <- CSV.read("mariah_airports.csv") 
+airport_sectors <- CSV.read("mariah_airport_sectors.csv") 
 timetable <- CSV.read("mariah_timetable.csv")
