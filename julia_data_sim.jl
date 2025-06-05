@@ -58,7 +58,7 @@ function flight_path(row_number)
     depart_airport = timetable[row_number, 2]
     depart_sector = timetable[row_number, 3]
     arrive_airport = timetable[row_number, 4]
-    arrive_sector = timetable[row_number, 5]
+    #arrive_sector = timetable[row_number, 5]
 
     flight_line = line_path(depart_airport, arrive_airport, 0.1)
 
@@ -69,9 +69,23 @@ function flight_path(row_number)
         if s ∉ flight_path
             push!(flight_path, s)
         end
-    end    
+    end 
+    push!(flight_path, arrive_airport)   
     
     return flight_path
 end
 
-flight_path(1)
+# find longest path
+global max_length = 2
+all_paths = []
+for i in 1:nrow(timetable)
+    path = flight_path(i)
+    push!(all_paths, path)
+    if length(path) > max_length
+        global max_length = length(path)
+    end
+end
+
+# pad remaining paths with Os
+padded = [vcat(path, fill(0, max_length - length(path))) for path in all_paths]
+
