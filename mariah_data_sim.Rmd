@@ -27,6 +27,11 @@ airspeed <- 3
 lats <- numeric(sector_count^2)
 longs <- numeric(sector_count^2)
 
+xmins <- numeric(sector_count^2)
+xmaxs <- numeric(sector_count^2)
+ymins <- numeric(sector_count^2)
+ymaxs <- numeric(sector_count^2)
+
 for (i in 1:sector_count) {
   for (j in 1: sector_count) {
     lat_range <- c(5 * i - 5, 5 * i)
@@ -35,10 +40,15 @@ for (i in 1:sector_count) {
     long <- runif(1, min = long_range[1], max = long_range[2])[1]
     lats[sector_count * (i-1) + j] <- lat
     longs[sector_count * (i-1) + j] <- long
+    
+    xmins[sector_count * (i-1) + j] <- long_range[1]
+    xmaxs[sector_count * (i-1) + j] <- long_range[2]
+    ymins[sector_count * (i-1) + j] <- lat_range[1]
+    ymaxs[sector_count * (i-1) + j] <- lat_range[2]
   }
 }
 
-airports <- tibble(airport = c("A", "B", NA, "C", "D", "E", NA, "F", "G"), sector = c(1:sector_count^2), lat = lats, long = longs, holding_time, turnaround_time, sector_capacity, ground_cost, air_cost, min_time, time_buffer, depart_capacity, arrival_capacity, sector_count, airspeed)
+airport_sectors <- tibble(airport = c("A", NA, "B", "C", "D", "E", NA, "F", "G"), sector = c(1:sector_count^2), lat = lats, long = longs, xmin = xmins, xmax = xmaxs, ymin = ymins, ymax = ymaxs, holding_time, turnaround_time, sector_capacity, ground_cost, air_cost, min_time, time_buffer, depart_capacity, arrival_capacity, sector_count, airspeed)
 ```
 
 ```{r}
@@ -70,7 +80,22 @@ timetable <- tibble(depart_airport = depart_airport, depart_sector = depart_sect
 ```
 
 ```{r}
-write.csv(airports, "mariah_airports.csv")
+write.csv(airport_sectors, "mariah_airport_sectors.csv")
 write.csv(timetable, "mariah_timetable.csv")
+```
+
+## trying something
+```{r}
+# sector_size = 5
+# 
+# griddf <- expand.grid(lat = seq(from = 0, by = 5, l = 3),
+#                       lng = seq(from = 0, by = 5, l = 3)) %>%
+#   mutate(
+#     xmin = lng,
+#     xmax = lng + sector_size,
+#     ymin = lat, 
+#     ymax = lat + sector_size, 
+#     sector_id = row_number()
+#   )
 ```
 
