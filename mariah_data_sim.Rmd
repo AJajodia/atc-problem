@@ -21,7 +21,7 @@ min_time <- 0
 time_buffer <- 60
 depart_capacity <- 5
 arrival_capacity <- 
-sector_count <- 2
+sector_count <- 3
 airspeed <- 3
 
 lats <- numeric(sector_count^2)
@@ -38,7 +38,7 @@ for (i in 1:sector_count) {
   }
 }
 
-airports <- tibble(airport = c("A", "B", "C", "D"), sector = c(1:sector_count^2), lat = lats, long = longs, holding_time, turnaround_time, sector_capacity, ground_cost, air_cost, min_time, time_buffer, depart_capacity, arrival_capacity, sector_count, airspeed)
+airports <- tibble(airport = c("A", "B", NA, "C", "D", "E", NA, "F", "G"), sector = c(1:sector_count^2), lat = lats, long = longs, holding_time, turnaround_time, sector_capacity, ground_cost, air_cost, min_time, time_buffer, depart_capacity, arrival_capacity, sector_count, airspeed)
 ```
 
 ```{r}
@@ -52,6 +52,9 @@ arrive_sector <- numeric(flight_count)
 
 for (i in 1:20) {
   airports_pair <- slice_sample(airports, n =  2)
+  while (any(is.na(airports_pair))) {
+    airports_pair <- slice_sample(airports, n = 2)
+  }
   A <- airports_pair[1,]
   B <- airports_pair[2,]
   departure_times[i] <- sample(1:24, 1)
