@@ -87,5 +87,7 @@ for i in 1:nrow(timetable)
 end
 
 # pad remaining paths with Os
-padded = [vcat(path, fill(0, max_length - length(path))) for path in all_paths]
+padded = [hcat(path, fill(0, max_length - length(path))) for path in all_paths]
 
+padded_df = DataFrame(padded, :auto)
+CSV.write("flight_paths.csv", padded_df; writeheader = false)
