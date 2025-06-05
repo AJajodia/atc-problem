@@ -11,12 +11,13 @@ airport_dict = Dict(row.airport => (row.airport_lat, row.airport_long)
 for row in eachrow(airport_sectors))
 
 #creating a dictionary for the boundaries of each sector
-sector_dict = Dict(row.sector => (row.xmin, row.xmax, row.ymin, row.ymax) 
+sector_dict = Dict(row.sector => (xmin = row.xmin, xmax = row.xmax, 
+ymin = row.ymin, ymax =row.ymax) 
 for row in eachrow(airport_sectors))
 
 
 # create straight line that flight follows
-function line_flight_path(origin, destination, step_size)
+function line_path(origin, destination, step_size)
     start_coord = airport_dict[origin]
     end_coord = airport_dict[destination]
 
@@ -44,20 +45,33 @@ function line_flight_path(origin, destination, step_size)
 end
 
 # checker to see if a given point is in a sector (can check along the flight line)
-function in_sector(x, y, xmin, xmax, ymin, ymax)
-    return xmin ≤ x ≤ xmax && ymin ≤ y ≤ ymax
-end
-
-# find what sectors a flight crosses (straight line)
-function sector_flight_path(start_end, bounds)
-    crossed_sectors = Array{Float64,1}()
-    for (i, bounds) in enumerate(bounds_list)
-        for (x, y) in path
-            if in_sector(x, y, bounds)
-                push!(sectors, i)
-                break  # Only need to check once per sector
-            end
+function find_sector(x, y)
+    for (sector, bounds) in sector_dict
+        if x ≥ bounds.xmin && x ≤ bounds.xmax && y ≥ bounds.ymin && y ≤ bounds.ymax
+            return sector
         end
     end
-    return sort(collect(sectors))
 end
+
+# find what sectors a flight line crosses
+function flight_path(row_number)
+    depart_airport = timetable[row_number, 2]
+    depart_sector = timetable[row_number, 3]
+    arrive_airport = timetable[row_number, 4]
+    arrive_sector = timetable[row_number, 5]
+
+    flight_line = line_path(depart_airport, arrive_airport, 0.1)
+
+    flight_path = [depart_airport, depart_sector]
+
+    for (x,y) in flight_line
+        s = find_sector(x,y)
+        if s ∉ flight_path
+            push!(flight_path, s)
+        end
+    end    
+    
+    return flight_path
+end
+
+flight_path(1)
