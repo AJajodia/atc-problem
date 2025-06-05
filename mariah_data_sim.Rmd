@@ -49,7 +49,7 @@ for (i in 1:sector_count) {
   }
 }
 
-airport_sectors <- tibble(airport = c("A", NA, "B", "C", "D", "E", NA, "F", "G"), airport_lat = lats, airport_long = longs, sector = c(1:sector_count^2), xmin = xmins, xmax = xmaxs, ymin = ymins, ymax = ymaxs, holding_time, turnaround_time, sector_capacity, ground_cost, air_cost, min_time, time_buffer, depart_capacity, arrival_capacity, sector_count, airspeed)
+airport_sectors <- tibble(airport = c("A", NA, "B", "C", "D", "E", NA, "F", "G"), airport_long = longs, airport_lat = lats, sector = c(1:sector_count^2), xmin = xmins, xmax = xmaxs, ymin = ymins, ymax = ymaxs, holding_time, turnaround_time, sector_capacity, ground_cost, air_cost, min_time, time_buffer, depart_capacity, arrival_capacity, sector_count, airspeed)
 ```
 
 ```{r}
