@@ -27,6 +27,7 @@ airspeed <- 3
 lats <- numeric(sector_count^2)
 longs <- numeric(sector_count^2)
 
+#create sector boundaries (3x3 grid of 5x5 squares)
 xmins <- numeric(sector_count^2)
 xmaxs <- numeric(sector_count^2)
 ymins <- numeric(sector_count^2)
@@ -48,7 +49,7 @@ for (i in 1:sector_count) {
   }
 }
 
-airport_sectors <- tibble(airport = c("A", NA, "B", "C", "D", "E", NA, "F", "G"), sector = c(1:sector_count^2), lat = lats, long = longs, xmin = xmins, xmax = xmaxs, ymin = ymins, ymax = ymaxs, holding_time, turnaround_time, sector_capacity, ground_cost, air_cost, min_time, time_buffer, depart_capacity, arrival_capacity, sector_count, airspeed)
+airport_sectors <- tibble(airport = c("A", NA, "B", "C", "D", "E", NA, "F", "G"), airport_lat = lats, airport_long = longs, sector = c(1:sector_count^2), xmin = xmins, xmax = xmaxs, ymin = ymins, ymax = ymaxs, holding_time, turnaround_time, sector_capacity, ground_cost, air_cost, min_time, time_buffer, depart_capacity, arrival_capacity, sector_count, airspeed)
 ```
 
 ```{r}
@@ -84,7 +85,11 @@ write.csv(airport_sectors, "mariah_airport_sectors.csv")
 write.csv(timetable, "mariah_timetable.csv")
 ```
 
-## trying something
+## trying something for flight paths
+
+
+
+
 ```{r}
 # sector_size = 5
 # 
