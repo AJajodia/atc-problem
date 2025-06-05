@@ -7,7 +7,6 @@ output: html_document
 library(tidyverse)
 ```
 
-
 ```{r}
 holding_time <- .5
 turnaround_time <- .5
