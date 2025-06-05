@@ -47,19 +47,23 @@ departure_times <- numeric(flight_count)
 arrival_times <- numeric(flight_count)
 depart_airport <- numeric(flight_count)
 arrive_airport <- numeric(flight_count)
+depart_sector <- numeric(flight_count)
+arrive_sector <- numeric(flight_count)
 
 for (i in 1:20) {
   airports_pair <- slice_sample(airports, n =  2)
   A <- airports_pair[1,]
   B <- airports_pair[2,]
   departure_times[i] <- sample(1:24, 1)
-  depart_airport[i] <- A$sector
-  arrive_airport[i] <- B$sector
+  depart_airport[i] <- A$airport
+  depart_sector[i] <- A$sector
+  arrive_airport[i] <- B$airport
+  arrive_sector[i] <- B$sector
   arrival_times[i] <- floor(sqrt((A$lat - B$lat)^2 +
                              (A$long - B$long)^2)/airspeed + departure_times[i])
 }
 
-timetable <- tibble(depart_airport = depart_airport, arrive_airport = arrive_airport, depart_time = departure_times, arrival_time = arrival_times)
+timetable <- tibble(depart_airport = depart_airport, depart_sector = depart_sector, arrive_airport = arrive_airport, arrive_sector = arrive_sector, depart_time = departure_times, arrival_time = arrival_times)
 ```
 
 ```{r}
