@@ -87,6 +87,9 @@ write.csv(timetable, "mariah_timetable.csv")
 
 ## trying something for flight paths
 
+```{r}
+flight_paths <- read_csv("flight_paths.csv")
+```
 
 
 

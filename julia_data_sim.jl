@@ -89,5 +89,6 @@ end
 # pad remaining paths with Os
 padded = [hcat(path, fill(0, max_length - length(path))) for path in all_paths]
 
-padded_df = DataFrame(padded, :auto)
+column_names = ["flight_$(i)" for i in 1:20]
+padded_df = DataFrame(padded, Symbol.(column_names))
 CSV.write("flight_paths.csv", padded_df; writeheader = false)
