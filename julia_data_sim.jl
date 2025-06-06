@@ -56,8 +56,10 @@ function find_sector(x, y)
     end
 end
 
-function sector_durations(flight_line, airspeed, step_size)
-    durations = Dict{Int, Int}()  
+function sector_durations(flight_line, airspeed)
+    sector_entries = Dict{Any, Tuple{Float64, Float64}}()
+    sector_exits = Dict{Any, Tuple{Float64, Float64}}()
+
     prev_sector = nothing
 
     for (x, y) in flight_line
@@ -65,18 +67,47 @@ function sector_durations(flight_line, airspeed, step_size)
         if isnothing(sector)
             continue
         end
-        if sector == prev_sector
-            durations[sector] += 1
-        else
-            durations[sector] = get(durations, sector, 0) + 1
+
+        if !haskey(sector_entries, sector)
+            sector_entries[sector] = (x, y)
         end
+
+        sector_exits[sector] = (x, y)
+
         prev_sector = sector
     end
 
-    time_per_step = (step_size)*100 / airspeed
-    sector_times = Dict(k => round(v * time_per_step, digits=2) for (k, v) in durations)
+    sector_times = Dict{Any, Float64}()
+    for sector in keys(sector_entries)
+        entry = sector_entries[sector]
+        exit = sector_exits[sector]
+        dist = sqrt((100*exit[1] - 100*entry[1])^2 + (100*exit[2] - 100*entry[2])^2)
+        time = dist / airspeed 
+        sector_times[sector] = round(time, digits=3)
+    end
 
     return sector_times
+
+    #durations = Dict{Int, Int}()  
+    #prev_sector = nothing
+
+    #for (x, y) in flight_line
+        #sector = find_sector(x, y)
+        #if isnothing(sector)
+            #continue
+        #end
+        #if sector == prev_sector
+            #durations[sector] += 1
+        #else
+            #durations[sector] = get(durations, sector, 0) + 1
+        #end
+        #prev_sector = sector
+    #end
+
+    #time_per_step = (step_size)*100 / airspeed
+   # sector_times = Dict(k => round(v * time_per_step, digits=3) for (k, v) in durations)
+
+    #return sector_times
 end
 
 # find what sectors a flight line crosses
@@ -85,7 +116,7 @@ function flight_path(row_number, airspeed, step_size)
     arrive_airport = timetable[row_number, 5]
 
     flight_line = line_path(depart_airport, arrive_airport, step_size)
-    min_sector_times = sector_durations(flight_line, airspeed, step_size)
+    min_sector_times = sector_durations(flight_line, airspeed)
 
     flight_path = Vector{Tuple{Union{String, Int}, Float64}}()
     push!(flight_path, (depart_airport, 0))
