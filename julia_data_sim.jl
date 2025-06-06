@@ -109,7 +109,7 @@ all_paths = []
 #find longest path
 global max_length = 2
 for i in 1:nrow(timetable)
-    path = flight_path(i, airspeed, 0.1)
+    path = flight_path(i, airspeed, 0.01)
     push!(all_paths, path)
     if length(path) > max_length
         global max_length = length(path)
