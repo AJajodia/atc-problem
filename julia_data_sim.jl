@@ -17,7 +17,8 @@ ymin = row.ymin, ymax =row.ymax)
 for row in eachrow(airport_sectors))
 
 
-# create straight line that flight follows
+# create straight line that flight follows, 
+#step size = 0.01 (1 mile if 1 unit of lat/long = 100 miles)
 function line_path(origin, destination, step_size)
     start_coord = airport_dict[origin]
     end_coord = airport_dict[destination]
@@ -27,6 +28,7 @@ function line_path(origin, destination, step_size)
     y1 = start_coord[1]
     y2 = end_coord[1]
 
+    #how many miles mile
     total_steps = max(
         ceil(Int, abs(x2 - x1) / step_size),
         ceil(Int, abs(y2 - y1) / step_size)
@@ -71,7 +73,7 @@ function sector_durations(flight_line, airspeed, step_size)
         prev_sector = sector
     end
 
-    time_per_step = step_size / airspeed
+    time_per_step = (step_size)*100 / airspeed
     sector_times = Dict(k => round(v * time_per_step, digits=2) for (k, v) in durations)
 
     return sector_times
