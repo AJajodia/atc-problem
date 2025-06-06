@@ -72,8 +72,8 @@ for (i in 1:20) {
   depart_sector[i] <- A$sector
   arrive_airport[i] <- B$airport
   arrive_sector[i] <- B$sector
-  arrival_times[i] <- floor(sqrt((A$lat - B$lat)^2 +
-                             (A$long - B$long)^2)/airspeed + departure_times[i])
+  arrival_times[i] <- floor(sqrt((A$lat*100 - B$lat*100)^2 +
+                             (A$long*100 - B$long*100)^2)/airspeed + departure_times[i])
 }
 
 timetable <- tibble(flight_id = 1:20, depart_airport = depart_airport, depart_sector = depart_sector, arrive_airport = arrive_airport, arrive_sector = arrive_sector, depart_time = departure_times, arrival_time = arrival_times, airspeed, turnaround_time, ground_cost, air_cost, time_buffer)
