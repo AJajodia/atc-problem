@@ -4,11 +4,8 @@ using CSV
 
 #loading R simulated data
 airport_sectors = CSV.read("optimization_project/mariah_airport_sectors.csv", DataFrame) 
-timetable = CSV.read("optimization_project/mariah_timetable.csv", DataFrame)
-
-timetable.depart_airport = string.(timetable.depart_airport)
-timetable.arrive_airport = string.(timetable.arrive_airport)
-airport_sectors.airport = string.(airport_sectors.airport)
+timetable = CSV.read("optimization_project/mariah_timetable.csv", DataFrame, 
+types=Dict(:depart_airport => String, :arrive_airport => String))
 
 #creating a dictionary for the coordinates of each airport
 airport_dict = Dict(row.airport => (row.airport_lat, row.airport_long) 
@@ -83,14 +80,12 @@ end
 # find what sectors a flight line crosses
 function flight_path(row_number, airspeed, step_size)
     depart_airport = timetable[row_number, 2]
-    depart_sector = timetable[row_number, 3]
     arrive_airport = timetable[row_number, 4]
-    #arrive_sector = timetable[row_number, 5]
 
     flight_line = line_path(depart_airport, arrive_airport, step_size)
     min_sector_times = sector_durations(flight_line, airspeed, step_size)
 
-    flight_path = Vector{Tuple{Any, Float64}}()
+    flight_path = Vector{Tuple{Union{String, Int}, Float64}}()
     push!(flight_path, (depart_airport, 0))
 
     seen_sectors = Set{Int}()
