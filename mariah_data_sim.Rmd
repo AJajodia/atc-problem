@@ -12,7 +12,6 @@ set.seed(949)
 ```
 
 ```{r}
-holding_time <- .5
 sector_capacity <- 3
 depart_capacity <- 5
 arrival_capacity <- 

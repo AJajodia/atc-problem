@@ -102,8 +102,8 @@ function flight_path(row_number, airspeed, step_size)
     
     return flight_path
 end
-print(flight_path(1, 3, 0.1))
 
+airspeed = timetable[1, "airspeed"]
 
 all_paths = []
 #find longest path
