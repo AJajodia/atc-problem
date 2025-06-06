@@ -6,6 +6,10 @@ using CSV
 airport_sectors = CSV.read("optimization_project/mariah_airport_sectors.csv", DataFrame) 
 timetable = CSV.read("optimization_project/mariah_timetable.csv", DataFrame)
 
+timetable.depart_airport = string.(timetable.depart_airport)
+timetable.arrive_airport = string.(timetable.arrive_airport)
+airport_sectors.airport = string.(airport_sectors.airport)
+
 #creating a dictionary for the coordinates of each airport
 airport_dict = Dict(row.airport => (row.airport_lat, row.airport_long) 
 for row in eachrow(airport_sectors))
