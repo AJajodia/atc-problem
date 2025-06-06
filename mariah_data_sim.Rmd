@@ -51,7 +51,7 @@ turnaround_time <- 4
 ground_cost <- 5
 air_cost <- 10
 time_buffer <- 4
-airspeed <- 150
+airspeed <- 15
 
 departure_times <- numeric(flight_count)
 arrival_times <- numeric(flight_count)

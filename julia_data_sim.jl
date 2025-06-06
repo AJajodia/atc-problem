@@ -79,8 +79,8 @@ end
 
 # find what sectors a flight line crosses
 function flight_path(row_number, airspeed, step_size)
-    depart_airport = timetable[row_number, 2]
-    arrive_airport = timetable[row_number, 4]
+    depart_airport = timetable[row_number, 3]
+    arrive_airport = timetable[row_number, 5]
 
     flight_line = line_path(depart_airport, arrive_airport, step_size)
     min_sector_times = sector_durations(flight_line, airspeed, step_size)
@@ -103,13 +103,13 @@ function flight_path(row_number, airspeed, step_size)
     return flight_path
 end
 
-airspeed = timetable[1, "airspeed"]
+airspeed = timetable[1, :airspeed]
 
 all_paths = []
 #find longest path
 global max_length = 2
 for i in 1:nrow(timetable)
-    path = flight_path(i, 3, 0.1)
+    path = flight_path(i, airspeed, 0.1)
     push!(all_paths, path)
     if length(path) > max_length
         global max_length = length(path)
