@@ -49,7 +49,7 @@ for (i in 1:sector_count) {
   }
 }
 
-airport_sectors <- tibble(airport = c("A", NA, "B", "C", "D", "E", NA, "F", "G"), airport_long = longs, airport_lat = lats, sector = c(1:sector_count^2), xmin = xmins, xmax = xmaxs, ymin = ymins, ymax = ymaxs, holding_time, turnaround_time, sector_capacity, ground_cost, air_cost, min_time, time_buffer, depart_capacity, arrival_capacity, sector_count, airspeed)
+airport_sectors <- tibble(airport = c("A", NA, "B", NA, "C", "D", "E", "F", "G"), airport_long = longs, airport_lat = lats, sector = c(1:sector_count^2), xmin = xmins, xmax = xmaxs, ymin = ymins, ymax = ymaxs, holding_time, turnaround_time, sector_capacity, ground_cost, air_cost, min_time, time_buffer, depart_capacity, arrival_capacity, sector_count, airspeed)
 ```
 
 ```{r}
@@ -85,12 +85,60 @@ write.csv(airport_sectors, "mariah_airport_sectors.csv")
 write.csv(timetable, "mariah_timetable.csv")
 ```
 
-## trying something for flight paths
+## flight paths
 
 ```{r}
 flight_paths <- read_csv("flight_paths.csv")
 ```
 
+## plotting sector/airport map
+
+```{r}
+library(sf)
+
+airport_sf <- airport_sectors %>%
+  st_as_sf(coords = c("airport_long", "airport_lat"), crs = 4326)
+
+# Create grid covering the bounding box of airport points
+bbox <- st_bbox(airport_sf)
+
+grid <- st_make_grid(
+  st_as_sfc(bbox),   # Create a simple feature polygon from bbox for grid extent
+  cellsize = c(5, 5)
+)
+
+ggplot() +
+  geom_sf(data = grid, color = "black", fill = NA) +  # grid lines only
+  geom_sf(data = airport_sf, color = "red", shape = 1, size = 2) +
+  coord_sf(xlim = c(bbox$xmin, bbox$xmax), ylim = c(bbox$ymin, bbox$ymax)) +
+  theme_minimal() +                    # clean theme, no background grid
+  theme(panel.background = element_rect(fill = NA))
+```
+
+
+```{r}
+airport_sectors %>%
+  ggplot() +
+  geom_point(data = drop_na(airport_sectors), 
+             aes(x = airport_long, y = airport_lat, color = airport), size = 4) +
+  geom_text(data = drop_na(airport_sectors), 
+            aes(x = airport_long, y = airport_lat, color = airport, label = airport), vjust = -1, size = 5) +
+  geom_text(data = mutate(airport_sectors, sector_long = (xmin+xmax)/2, 
+                           sector_lat = (ymin+ymax)/2),
+            aes(x = sector_long, y = sector_lat, label = sector), size = 7) +
+  geom_vline(xintercept = 5) +
+  geom_vline(xintercept = 10) +
+  geom_vline(xintercept = 15) +
+  geom_hline(yintercept = 5) +
+  geom_hline(yintercept = 10) +
+  geom_hline(yintercept = 15) +
+  geom_vline(xintercept = 0) +
+  geom_hline(yintercept = 0) +
+  theme_void() +
+  theme(legend.position="none",
+        panel.background = element_rect(fill = "gray95")) +
+  coord_sf(xlim = c(0, 15), ylim = c(0, 15))
+```
 
 
 ```{r}

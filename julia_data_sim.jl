@@ -4,7 +4,8 @@ using CSV
 
 #loading R simulated data
 airport_sectors = CSV.read("optimization_project/mariah_airport_sectors.csv", DataFrame) 
-timetable = CSV.read("optimization_project/mariah_timetable.csv", DataFrame)
+timetable = CSV.read("optimization_project/mariah_timetable.csv", DataFrame, 
+types=Dict(:depart_airport => String, :arrive_airport => String))
 
 #creating a dictionary for the coordinates of each airport
 airport_dict = Dict(row.airport => (row.airport_lat, row.airport_long) 
@@ -53,33 +54,62 @@ function find_sector(x, y)
     end
 end
 
+function sector_durations(flight_line, airspeed, step_size)
+    durations = Dict{Int, Int}()  
+    prev_sector = nothing
+
+    for (x, y) in flight_line
+        sector = find_sector(x, y)
+        if isnothing(sector)
+            continue
+        end
+        if sector == prev_sector
+            durations[sector] += 1
+        else
+            durations[sector] = get(durations, sector, 0) + 1
+        end
+        prev_sector = sector
+    end
+
+    time_per_step = step_size / airspeed
+    sector_times = Dict(k => round(v * time_per_step, digits=2) for (k, v) in durations)
+
+    return sector_times
+end
+
 # find what sectors a flight line crosses
-function flight_path(row_number)
+function flight_path(row_number, airspeed, step_size)
     depart_airport = timetable[row_number, 2]
-    depart_sector = timetable[row_number, 3]
     arrive_airport = timetable[row_number, 4]
-    #arrive_sector = timetable[row_number, 5]
 
-    flight_line = line_path(depart_airport, arrive_airport, 0.1)
+    flight_line = line_path(depart_airport, arrive_airport, step_size)
+    min_sector_times = sector_durations(flight_line, airspeed, step_size)
 
-    flight_path = [depart_airport, depart_sector]
+    flight_path = Vector{Tuple{Union{String, Int}, Float64}}()
+    push!(flight_path, (depart_airport, 0))
+
+    seen_sectors = Set{Int}()
 
     for (x,y) in flight_line
         s = find_sector(x,y)
-        if s ∉ flight_path
-            push!(flight_path, s)
+        if !(s in seen_sectors)
+            push!(flight_path, (s, min_sector_times[s]))
+            push!(seen_sectors, s)
         end
-    end 
-    push!(flight_path, arrive_airport)   
+    end
+
+    push!(flight_path, (arrive_airport, 0))   
     
     return flight_path
 end
+print(flight_path(1, 3, 0.1))
 
-# find longest path
-global max_length = 2
+
 all_paths = []
+#find longest path
+global max_length = 2
 for i in 1:nrow(timetable)
-    path = flight_path(i)
+    path = flight_path(i, 3, 0.1)
     push!(all_paths, path)
     if length(path) > max_length
         global max_length = length(path)
@@ -87,8 +117,9 @@ for i in 1:nrow(timetable)
 end
 
 # pad remaining paths with Os
-padded = [hcat(path, fill(0, max_length - length(path))) for path in all_paths]
+padded = [vcat(path, fill((0,0), max_length - length(path))) for path in all_paths]
+result = reduce(hcat, padded)
 
 column_names = ["flight_$(i)" for i in 1:20]
-padded_df = DataFrame(padded, Symbol.(column_names))
+padded_df = DataFrame(result, Symbol.(column_names))
 CSV.write("flight_paths.csv", padded_df; writeheader = false)
