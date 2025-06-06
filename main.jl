@@ -1,5 +1,7 @@
+# imports
 using JuMP, GLPK, CSV, DataFrames
 
+# data preprocessing
 sectors_df = DataFrame(CSV.File("mariah_airports.csv"))
 
 airports_df = dropmissing(sectors_df)
@@ -14,20 +16,28 @@ sectors_list = sectors_df.sector
 
 timetable_df = DataFrame(CSV.File("mariah_timetable.csv"))
 
+sector_lookup = Dict(sectors_df.sector[i] => i for i in 1:nrow(sectors_df))
+
+airport_lookup = Dict(sectors_df.airport[i] => i for i in 1:nrow(sectors_df))
+
+
 P = DataFrame(CSV.File("flight_paths.csv", header = false))
 
-println(airports)
 
 # Preparing an optimization model
 m = Model(GLPK.Optimizer)
 
 F = nrow(timetable_df)
-K = sum([!ismissing(sectors_df.airport[i]) for i in 1:nrow(sectors_df)])
+K = nrow(airports_df)
 J = nrow(sectors_df)
 N = [sum([flights[j,i] != "0" for j in 1:nrow(P)]) for i in 1:ncol(P)]
 
 
-T = [findmin(timetable_df.depart_time): findmax(timetable_df.arrival_time)]
+T = [minimum(timetable_df.depart_time): maximum(timetable_df.arrival_time)]
+
+c = [10location for flight in 1:F, location in 1:2]
+
+println(c)
 
 function D(k, t)
     airport = airports_list[k]
@@ -42,13 +52,24 @@ end
 function S(j, t)
     sector = sectors_list[j]
     return sectors[sector]
+end
 
+
+function P_s(f, i)
+    sector = P[i,f]
+    return sector_lookup[sector]
+end
+
+function P_a(f, i)
+    airport = P[i, f]
+    return airport_lookup[airport]
+end
 
 # Declaring variables
-@variable(m, w[1:F, 1:24, 1:max(N)])
+@variable(m, w[1:F, T, 1:J])
 
 # Setting the objective
-@objective(m, Min, sum(((c[f][1]-c[f][2]) * sum(t*(w[f, t, P[k][1]] - w[f, t-1, P[k][1]]) for t in T)) + c[i][2] for f in 1:F))
+@objective(m, Min, sum(((c[f,1]-c[f,2]) * sum(t*(w[f, t, P_a(f, 1)] - w[f, t-1, P_a(f, N[f])]) for t in T)) + c[f, 2] for f in 1:F))
 
 # Adding constraints
 
