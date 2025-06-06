@@ -31,6 +31,7 @@ P = [[1, 2, 3],[4, 5, 6]]
 for k in 1:K, t in 1:T
     @constraint(m, sum((w[f, t, 1] - w[f, t-1, 1]) for f in 1:F if P[k][1] == k) <= D[t][k])
     @constraint(m, sum((w[f, t, 1] - w[f, t-1, 1]) for f in 1:F if P[k][1] == k) <= A[t][k])
+    @constraint(m, )
 end
 
 # connectivity constraints
