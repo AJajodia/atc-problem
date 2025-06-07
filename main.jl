@@ -2,7 +2,7 @@
 using JuMP, GLPK, CSV, DataFrames
 
 # data preprocessing
-sectors_df = DataFrame(CSV.File("mariah_airports.csv"))
+sectors_df = DataFrame(CSV.File("mariah_airport_sectors.csv"))
 
 airports_df = dropmissing(sectors_df)
 
