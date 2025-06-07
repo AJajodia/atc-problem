@@ -65,22 +65,46 @@ function P_a(f, i)
     return airport_lookup[airport]
 end
 
+function Tjf(f, j)
+    # start_time = start_df[f, j]
+    # end_time = end_df[f, j]
+    start_time = 1
+    end_time = 24
+    return start_time:end_time
+end
+
 # Declaring variables
-@variable(m, w[1:F, T, 1:J])
+@variable(m, w[1:F, T, 1:J], Bin)
 
 # Setting the objective
-@objective(m, Min, sum(((c[f,1]-c[f,2]) * sum(t*(w[f, t, P_a(f, 1)] - w[f, t-1, P_a(f, N[f])]) for t in T)) + c[f, 2] for f in 1:F))
+@objective(m, Min, sum(((c[f,1]-c[f,2]) * sum(t*(w[f, t, P_a(f, 1)] - w[f, t-1, P_a(f, 1)]) for t in T)) + (c[f, 2] * sum(t*(w[f, t, P_a(f, N[f])] - w[f, t-1, P_a(f, N[f])]) for t in T)) for f in 1:F))
 
 # Adding constraints
 
 # airport and sector capacity constraints
-for k in 1:K, t in 1:T
-    @constraint(m, sum((w[f, t, 1] - w[f, t-1, 1]) for f in 1:F if P[k][1] == k) <= D[t][k])
-    @constraint(m, sum((w[f, t, 1] - w[f, t-1, 1]) for f in 1:F if P[k][1] == k) <= A[t][k])
-    @constraint(m, )
+for k in 1:K, t in T
+    @constraint(m, sum((w[f, t, P_a(f, 1)] - w[f, t-1, P_a(f, 1)]) for f in 1:F) <= D(k, t))
+    @constraint(m, sum((w[f, t, P_a(f, N[f])] - w[f, t-1, P_a(f, N[f])]) for f in 1:F) <= A(k, t))
+end
+for j in 1:J, t in T
+    @constraint(m, sum(sum(w[f, t, P_a(f, i)] - w[f, t, P_a(f, i+1)] for i in 1:N[f]-1) for f in 1:F) <= S(k, t))
 end
 
 # connectivity constraints
+for f in 1:F
+    for i in 1:N[f]-1
+        # didn't include connecting flights
+        for t in Tjf(f, j)
+            @constraint(w[f, t + l[f, P_a(f, i)], P_a(f, i+1)] - w[f, t, P_a(f, i)] <= 0)
+        end
+    end
+
+    for j in 1:N[f]
+        for t in Tjf(f, j)
+            @constraint(w[f, t, P_s(f, j)] - w[f, t-1, P_s(f, j)])
+        end
+    end
+end
 
 # Printing the prepared optimization model
 print(m)
@@ -89,7 +113,4 @@ print(m)
 JuMP.optimize!(m)
 
 # Print the information about the optimum.
-println("Objective value: ", objective_value(m))
-println("Optimal solutions:")
-println("y1 = ", value(y1))
-println("y2 = ", value(y2))
+println("Total Cost: ", objective_value(m))
