@@ -79,13 +79,12 @@ w = Dict(sector => [@variable(m, binary = true) for f in 1:F, t in 1:T] for sect
 @objective(m, Min, sum(((c[f,2]-c[f,1]) * sum(t*(W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1))) + (c[f, 1] * sum(t*(W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]))) for f in 1:F))
 
 
-
 println("Objective good")
 # Adding constraints
 
 # airport and sector capacity constraints
 for k in 1:K, t in 2:T
-    @constraint(m, sum(W(f, t, 1) - W(f, t-1, 1) for f in 1:F) <= D(k, t))
+    @constraint(m, sum(W(f, t, 1) - W(f, t-1, 1) for f in 1:F) <= 0)
     @constraint(m, sum(W(f, t, N[f]) - W(f, t-1, N[f]) for f in 1:F) <= A(k, t))
 end
 for j in 1:J, t in 2:T
