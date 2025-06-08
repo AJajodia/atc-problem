@@ -81,8 +81,15 @@ w = Dict(sector => [@variable(m, binary = true) for f in 1:F, t in 1:T] for sect
 
 
 # Setting the objective
-@objective(m, Min, sum(((c[f,1]-c[f,2]) * sum(t*(W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1))) + (c[f, 2] * sum(t*(W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]))) for f in 1:F))
-
+#@objective(m, Min, sum(((c[f,1]-c[f,2]) * sum(t*(W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1))) + (c[f, 2] * sum(t*(W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]))) for f in 1:F))
+@objective(m, Min, sum(
+    (
+        (c[f,1]-c[f,2]) * sum(t*(W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1))) 
+    + (c[f, 2] * sum(t*(W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]))
+    + ((c[f,2]-c[f,1])*timetable_df[f, :depart_time] - c[f,2]*timetable_df[f, :arrival_time] 
+    )
+    ) 
+    for f in 1:F))
 
 println("Objective good")
 # Adding constraints
