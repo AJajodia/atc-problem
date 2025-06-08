@@ -46,7 +46,7 @@ airport_sectors <- tibble(airport = c("A", NA, "B", NA, "C", "D", "E", "F", "G")
 ```
 
 ```{r}
-flight_count <- 20
+flight_count <- 100
 turnaround_time <- 4
 ground_cost <- 5
 air_cost <- 10
@@ -60,7 +60,7 @@ arrive_airport <- numeric(flight_count)
 depart_sector <- numeric(flight_count)
 arrive_sector <- numeric(flight_count)
 
-for (i in 1:20) {
+for (i in 1:flight_count) {
   airports_pair <- slice_sample(airport_sectors, n =  2)
   while (any(is.na(airports_pair))) {
     airports_pair <- slice_sample(airport_sectors, n = 2)
@@ -76,7 +76,7 @@ for (i in 1:20) {
                              (A$airport_long*100 - B$airport_long*100)^2)/airspeed + departure_times[i])
 }
 
-timetable <- tibble(flight_id = 1:20, depart_airport = depart_airport, depart_sector = depart_sector, arrive_airport = arrive_airport, arrive_sector = arrive_sector, depart_time = departure_times, arrival_time = arrival_times, airspeed, turnaround_time, ground_cost, air_cost, time_buffer)
+timetable <- tibble(flight_id = 1:flight_count, depart_airport = depart_airport, depart_sector = depart_sector, arrive_airport = arrive_airport, arrive_sector = arrive_sector, depart_time = departure_times, arrival_time = arrival_times, airspeed, turnaround_time, ground_cost, air_cost, time_buffer)
 ```
 
 ```{r}
