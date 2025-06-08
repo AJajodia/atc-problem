@@ -64,29 +64,34 @@ end
 
 function Tjf(f, j)
     start_time = start_df[j, f]
-    end_time = start_time + buffer_time
-    return start_time:end_time
+    #end_time = start_time + buffer_time
+    return start_time:T
+    #return start_time:end_time
 end
 
 function W(f, t, j)
     f = convert(Int, f)
     t = convert(Int, t)
-    j = convert(Int, j)
+    #j = convert(Int, j)
+    node = string(P[j, f])
+    return w[node][f, t]
 
-    return w[P[j, f]][f, t]
+    #return w[P[j, f]][f, t]
 end
 # Declaring variables
 
-w = Dict(sector => [@variable(m, binary = true) for f in 1:F, t in 1:T] for sector in hcat(sectors_list, airports_list))
+nodes = vcat(sectors_list, airports_list)
+w = Dict(node => [@variable(m, binary=true) for f in 1:F, t in 1:T] for node in nodes)
+#w = Dict(sector => [@variable(m, binary = true) for f in 1:F, t in 1:T] for sector in hcat(sectors_list, airports_list))
 
 
 # Setting the objective
 #@objective(m, Min, sum(((c[f,1]-c[f,2]) * sum(t*(W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1))) + (c[f, 2] * sum(t*(W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]))) for f in 1:F))
 @objective(m, Min, sum(
-    (
-        (c[f,1]-c[f,2]) * sum(t*(W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1))) 
+    ((c[f,1]-c[f,2]) * sum(t*(W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1))) 
     + (c[f, 2] * sum(t*(W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]))
-    + ((c[f,2]-c[f,1])*timetable_df[f, :depart_time] - c[f,2]*timetable_df[f, :arrival_time] 
+    + ((c[f,2]-c[f,1])*timetable_df[f, :depart_time] 
+    - c[f,2]*timetable_df[f, :arrival_time] 
     )
     ) 
     for f in 1:F))
