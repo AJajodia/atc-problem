@@ -76,7 +76,7 @@ end
 w = Dict(sector => [@variable(m, binary = true) for f in 1:F, t in 1:T] for sector in hcat(sectors_list, airports_list))
 
 # Setting the objective
-@objective(m, Min, sum(((c[f,2]-c[f,1]) * sum(t*(W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1))) + (c[f, 1] * sum(t*(W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]))) for f in 1:F))
+@objective(m, Min, sum(((c[f,1]-c[f,2]) * sum(t*(W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1))) + (c[f, 2] * sum(t*(W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]))) for f in 1:F))
 
 
 println("Objective good")
@@ -84,19 +84,19 @@ println("Objective good")
 
 # airport and sector capacity constraints
 for k in 1:K, t in 2:T
-    @constraint(m, sum(W(f, t, 1) - W(f, t-1, 1) for f in 1:F) <= 0)
+    @constraint(m, sum(W(f, t, 1) - W(f, t-1, 1) for f in 1:F) <= D(k, t))
     @constraint(m, sum(W(f, t, N[f]) - W(f, t-1, N[f]) for f in 1:F) <= A(k, t))
 end
 for j in 1:J, t in 2:T
-    @constraint(m, sum(sum(W(f, t, i) - W(f, t, i+1) for i in 1:N[f]-1) for f in 1:F) <= S(j, t))
+    @constraint(m, sum(W(f, t, j) - W(f, t, j+1) for f in 1:F if j < N[f]) <= S(j, t))
 end
 
 # connectivity constraints
 for f in 1:F
-    for i in 1:N[f]-1
+    for j in 1:N[f]-1
         # didn't include connecting flights
         for t in Tjf(f, i)
-            @constraint(m, W(f, t + l[i, f], i + 1) - W(f, t, i) <= 0)
+            @constraint(m, W(f, t + l[i, f], j + 1) - W(f, t, j) <= 0)
         end
     end
 
@@ -112,3 +112,4 @@ JuMP.optimize!(m)
 
 # Print the information about the optimum.
 println("Total Cost: ", objective_value(m))
+println(sum(value.(w["A"])))
