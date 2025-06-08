@@ -83,7 +83,7 @@ function sector_durations(flight_line, airspeed)
         exit = sector_exits[sector]
         dist = sqrt((100*exit[1] - 100*entry[1])^2 + (100*exit[2] - 100*entry[2])^2)
         time = dist / airspeed 
-        sector_times[sector] = convert(Int, round(time)) # made this round to integer bc time always needs to be discrete
+        sector_times[sector] = convert(Int, round(time + 1)) # made this round to integer bc time always needs to be discrete
     end
 
     return sector_times

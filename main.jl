@@ -49,7 +49,7 @@ end
 
 function D(k, t)
     airport = airports_list[k]
-    airports[airport][8]
+    return airports[airport][8]
 end
 
 function A(k, t)
@@ -107,6 +107,20 @@ for f in 1:F
     for j in 1:N[f]
         for t in Tjf(f, j)
             @constraint(m, W(f, t, j) - W(f, t-1, j) >= 0)
+        end
+    end
+end
+
+for f in 1:F
+    @constraint(m, W(f, Tjf(f, N[f])[end], N[f]) == 1)
+end
+
+for f in 1:F
+    for t in 2:T
+        for j in 1:N[f]
+            if t < Tjf(f, 1)[1]
+                @constraint(m, W(f, t, j) == 0)
+            end
         end
     end
 end
