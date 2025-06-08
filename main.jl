@@ -20,10 +20,12 @@ sector_lookup = Dict(sectors_df.sector[i] => i for i in 1:nrow(sectors_df))
 
 airport_lookup = Dict(sectors_df.airport[i] => i for i in 1:nrow(sectors_df))
 
+buffer_time = 10
 
-P = DataFrame(CSV.File("flight_paths.csv", header = false))
 
+P = DataFrame(CSV.File("flight_paths_anu.csv", header = false))
 
+println(P)
 # Preparing an optimization model
 m = Model(GLPK.Optimizer)
 
@@ -37,7 +39,6 @@ T = [minimum(timetable_df.depart_time): maximum(timetable_df.arrival_time)]
 
 c = [10location for flight in 1:F, location in 1:2]
 
-println(c)
 
 function D(k, t)
     airport = airports_list[k]
@@ -66,8 +67,8 @@ function P_a(f, i)
 end
 
 function Tjf(f, j)
-    # start_time = start_df[f, j]
-    # end_time = end_df[f, j]
+    start_time = start_df[f, j]
+    end_time = start_df[f, j] + buffer_time
     start_time = 1
     end_time = 24
     return start_time:end_time
@@ -79,6 +80,7 @@ end
 # Setting the objective
 @objective(m, Min, sum(((c[f,1]-c[f,2]) * sum(t*(w[f, t, P_a(f, 1)] - w[f, t-1, P_a(f, 1)]) for t in T)) + (c[f, 2] * sum(t*(w[f, t, P_a(f, N[f])] - w[f, t-1, P_a(f, N[f])]) for t in T)) for f in 1:F))
 
+println("Objective good")
 # Adding constraints
 
 # airport and sector capacity constraints
