@@ -40,7 +40,11 @@ N = [sum([P[j,i] != "0" for j in 1:nrow(P)]) for i in 1:ncol(P)]
 
 T = 100
 
-c = [10location for flight in 1:F, location in 1:2]
+c = zeros(F, 2)
+for f in 1:F
+    c[f,1] = 10  # ground
+    c[f,2] = 100  # air
+end
 
 
 function D(k, t)
