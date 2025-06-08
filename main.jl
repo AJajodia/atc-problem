@@ -79,6 +79,7 @@ end
 
 w = Dict(sector => [@variable(m, binary = true) for f in 1:F, t in 1:T] for sector in hcat(sectors_list, airports_list))
 
+
 # Setting the objective
 @objective(m, Min, sum(((c[f,1]-c[f,2]) * sum(t*(W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1))) + (c[f, 2] * sum(t*(W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]))) for f in 1:F))
 
