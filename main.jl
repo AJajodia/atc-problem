@@ -95,8 +95,8 @@ end
 for f in 1:F
     for j in 1:N[f]-1
         # didn't include connecting flights
-        for t in Tjf(f, i)
-            @constraint(m, W(f, t + l[i, f], j + 1) - W(f, t, j) <= 0)
+        for t in Tjf(f, j)
+            @constraint(m, W(f, t + l[j, f], j + 1) - W(f, t, j) <= 0)
         end
     end
 
