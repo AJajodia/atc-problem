@@ -191,7 +191,7 @@ result_min_times = reduce(hcat, padded_min_times)
 
 println(result_times)
 
-column_names = ["flight_$(i)" for i in 1:20]
+column_names = ["flight_$(i)" for i in 1:100]
 padded_lines_df = DataFrame(result_lines, Symbol.(column_names))
 padded_times_df = DataFrame(result_times, Symbol.(column_names))
 padded_min_times_df = DataFrame(result_min_times, Symbol.(column_names))

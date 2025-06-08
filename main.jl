@@ -38,7 +38,7 @@ J = nrow(sectors_df)
 N = [sum([P[j,i] != "0" for j in 1:nrow(P)]) for i in 1:ncol(P)]
 
 
-T = 100
+T = 200
 
 c = zeros(F, 2)
 for f in 1:F
