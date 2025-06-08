@@ -14,7 +14,7 @@ sectors = Dict(string.(sectors_df.sector[i]) => sectors_df.sector_capacity[i] fo
 
 sectors_list = string.(sectors_df.sector)
 
-timetable_df = DataFrame(CSV.File("mariah_timetable.csv")), DataFrame(CSV.File("mariah_timetable.csv"))
+timetable_df = DataFrame(CSV.File("mariah_timetable.csv"))
 
 sector_lookup = Dict(sectors_df.sector[i] => i for i in 1:nrow(sectors_df))
 
@@ -22,12 +22,12 @@ airport_lookup = Dict(sectors_df.airport[i] => i for i in 1:nrow(sectors_df))
 
 l = DataFrame(CSV.File("min_times_anu.csv", header = false))
 
-start_df = DataFrame(CSV.File("flight_min_times_anu.csv", header = false)), DataFrame(CSV.File("flight_min_times_anu.csv", header = false))
+start_df = DataFrame(CSV.File("flight_min_times_anu.csv", header = false))
 
 buffer_time = 1
 
 
-P = DataFrame(CSV.File("flight_paths_anu.csv", header = false)), DataFrame(CSV.File("flight_paths_anu.csv", header = false))
+P = DataFrame(CSV.File("flight_paths_anu.csv", header = false))
 
 # Preparing an optimization model
 m = Model(GLPK.Optimizer)
