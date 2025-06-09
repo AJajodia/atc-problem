@@ -38,7 +38,7 @@ J = nrow(sectors_df)        # Number of sectors (all sectors in system)
 # N[f] = number of steps (sectors/airports) along flight f's path
 N = [sum([P[step, f] != "0" for step in 1:nrow(P)]) for f in 1:ncol(P)]
 
-T = 96  # number of time periods (96 fifteen minutes in 1 day)
+T = 100  # number of time periods (96 fifteen minutes in 1 day) + buffer (4 time periods)
 
 # Cost matrix: rows = flights, columns = [ground cost, air cost]
 c = zeros(F, 2)
@@ -135,8 +135,8 @@ for f in 1:F
 end
 
 for f in 1:F
-    @constraint(m, sum(t * (W(f,t,1) - W(f,t-1,1)) for t in Tjf(f,1)) >= timetable_df[f, :depart_time])
-    @constraint(m, sum(t * (W(f,t,N[f]) - W(f,t-1,N[f])) for t in Tjf(f,N[f])) >= timetable_df[f, :arrival_time])
+    #@constraint(m, sum(t * (W(f,t,1) - W(f,t-1,1)) for t in Tjf(f,1)) >= timetable_df[f, :depart_time])
+    #@constraint(m, sum(t * (W(f,t,N[f]) - W(f,t-1,N[f])) for t in Tjf(f,N[f])) >= timetable_df[f, :arrival_time])
 end
 
 # Solving the optimization problem

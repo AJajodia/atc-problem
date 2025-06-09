@@ -46,29 +46,10 @@ for f in 1:F
     c[f, 2] = 100   # air holding cost
 end
 
-# --- Capacity functions ---
-
-function D(k, t)
-    # Departure capacity for airport k at time t
-    airport = airports_list[k]
-    airports[airport][7]
-end
-
-function A(k, t)
-    airport = airports_list[k]
-    return airports[airport][8]
-end
-
-function S(j, t)
-    sector = sectors_list[j]
-    return sector_capacity[sector]
-end
-
-function Tjf(f, step)
-    # Time window for flight f at path step
-    start_time = start_df[step, f]
+function Tjf(f, j)
+    start_time = start_df[j, f]
     end_time = start_time + buffer_time
     return start_time:end_time
 end
 
-print(leng)
+print(Tjf(2))

@@ -22,7 +22,7 @@ airport_lookup = Dict(sectors_df.airport[i] => i for i in 1:nrow(sectors_df))
 # Other data
 l = DataFrame(CSV.File("min_times_anu.csv", header = false))
 start_df = DataFrame(CSV.File("flight_min_times_anu.csv", header = false))
-buffer_time = 1
+buffer_time = 4
 
 # Flight paths: rows = steps along path, cols = flights
 P = DataFrame(CSV.File("flight_paths_anu.csv", header = false))
@@ -38,7 +38,7 @@ J = nrow(sectors_df)        # Number of sectors (all sectors in system)
 # N[f] = number of steps (sectors/airports) along flight f's path
 N = [sum([P[step, f] != "0" for step in 1:nrow(P)]) for f in 1:ncol(P)]
 
-T = 96  # number of time periods (96 fifteen minutes in 1 day)
+T = 100  # number of time periods (96 fifteen minutes in 1 day) + buffer (4 time periods)
 
 # Cost matrix: rows = flights, columns = [ground cost, air cost]
 c = zeros(F, 2)
@@ -65,115 +65,99 @@ function S(j, t)
     return sector_capacity[sector]
 end
 
-# --- Time windows for flights at each step along their path ---
-
-function Tjf(f, step)
-    # Time window for flight f at path step
-    start_time = start_df[step, f]
+function Tjf(f, j)
+    start_time = Int(start_df[j, f])
     end_time = start_time + buffer_time
     return start_time:end_time
 end
 
-# --- Decision variables ---
-
-# Binary variable w[loc][flight, time]: 1 if flight has arrived at loc by time t
-all_locations = union(sectors_list, airports_list)
-w = Dict{String, Array{VariableRef, 2}}()
-for loc in all_locations
-    w[loc] = @variable(m, [1:F, 1:T], Bin)
-end
-
-# --- Helper function to access w variables ---
-
-function W(f, t, step)
+function W(f, t, j)
     f = convert(Int, f)
     t = convert(Int, t)
-    step = convert(Int, step)
-    # Returns binary variable indicating flight f arrived at location at path step by time t
-    loc = P[step, f]
-    if loc == "0"
-        return 0  # no location at this step => no presence
-    else
-        return w[loc][f, t]
-    end
+    j = convert(Int, j)
+
+    return w[P[j, f]][f, t]
 end
+# Declaring variables
 
-# --- Objective function: minimize total cost ---
+w = Dict(sector => [@variable(m, binary = true) for f in 1:F, t in 1:T] for sector in vcat(sectors_list, airports_list))
 
-@objective(m, Min, sum(
-    # Ground holding cost: difference between actual and scheduled departure time
-    c[f,1] * (sum(t * (W(f,t,1) - (t > 1 ? W(f,t-1,1) : 0)) for t in Tjf(f,1)) - timetable_df[f, :depart_time]) +
+# Setting the objective
 
-    # Air holding cost: difference between actual and scheduled arrival time
-    c[f,2] * (sum(t * (W(f,t,N[f]) - (t > 1 ? W(f,t-1,N[f]) : 0)) for t in Tjf(f,N[f])) - timetable_df[f, :arrival_time])
-    for f in 1:F
-))
+#@objective(m, Min, sum(
+#    c[f,1] * (sum(t * (W(f,t,1) - W(f,t-1,1)) for t in Tjf(f,1)) - timetable_df[f, :depart_time]) +
+#    c[f,2] * (sum(t * (W(f,t,N[f]) - W(f,t-1,N[f])) for t in Tjf(f,N[f])) - timetable_df[f, :arrival_time])
+#    for f in 1:F
+#))
+@objective(m, Min, sum(((c[f,1]-c[f,2]) * sum(t*(W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1))) + (c[f, 2] * sum(t*(W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]))) for f in 1:F))
 
-# --- Constraints ---
 
-# 1) Departure capacity constraints at airports (step 1 locations)
+println("Objective good")
+# Adding constraints
+
+# airport and sector capacity constraints
 for k in 1:K, t in 2:T
     @constraint(m, sum(W(f, t, 1) - W(f, t-1, 1) for f in 1:F) <= D(k, t))
-end
-
-# 2) Arrival capacity constraints at airports (last step locations)
-for k in 1:K, t in 2:T
     @constraint(m, sum(W(f, t, N[f]) - W(f, t-1, N[f]) for f in 1:F) <= A(k, t))
 end
+for j in 1:J, t in 2:T
+    @constraint(m, sum(W(f, t, j) - W(f, t, j+1) for f in 1:F if j < N[f]) <= S(j, t))
+end
 
-# 3) Sector capacity constraints for all intermediate sectors along flight paths
-for t in 2:T
-    for f in 1:F
-        for step in 1:N[f]
-            if step < N[f]
-                loc = P[step, f]
-                cap = S(loc, t)
-                @constraint(m, sum(W(f, t, step) - W(f, t, step + 1) for f in 1:F if P[step, f] != "0") <= cap)
+# connectivity constraints
+for f in 1:F
+    for j in 1:N[f]-1
+        # didn't include connecting flights
+        for t in Tjf(f, j)
+            @constraint(m, W(f, t + l[j, f], j + 1) - W(f, t, j) <= 0)
+        end
+    end
+
+    for j in 1:N[f]
+        for t in Tjf(f, j)
+            @constraint(m, W(f, t, j) - W(f, t-1, j) >= 0)
+        end
+    end
+end
+
+for f in 1:F
+    @constraint(m, W(f, Tjf(f, N[f])[end], N[f]) == 1)
+end
+
+for f in 1:F
+    for t in 2:T
+        for j in 1:N[f]
+            if t < Tjf(f, 1)[1]
+                @constraint(m, W(f, t, j) == 0)
             end
         end
     end
 end
 
-# 4) Connectivity constraints between steps (flight flow continuity)
 for f in 1:F
-    for step in 1:N[f]-1
-        for t in Tjf(f, step)
-            travel_time = l[step, f]
-            if t + travel_time <= T
-                @constraint(m, W(f, t + travel_time, step + 1) - W(f, t, step) <= 0)
+    #@constraint(m, sum(t * (W(f,t,1) - W(f,t-1,1)) for t in Tjf(f,1)) >= timetable_df[f, :depart_time])
+    @constraint(m, sum(t * (W(f,t,N[f]) - W(f,t-1,N[f])) for t in Tjf(f,N[f])) >= timetable_df[f, :arrival_time])
+end
+
+# Solving the optimization problem
+JuMP.optimize!(m)
+
+# Print the information about the optimum.
+println("Total Cost: ", objective_value(m))
+
+for f in 1:F
+    println("Flight ", f, ":")
+    for j in 1:N[f]
+        seg = P[j, f]
+        if seg == "0"
+            continue
+        end
+        for t in Tjf(f, j)
+            if value(w[seg][f, t]) > 0.5
+                println("    enters ", seg, " at time ", t)
+                break
             end
         end
     end
-end
-
-# 5) Monotonicity constraints: W non-decreasing over time
-for f in 1:F
-    for step in 1:N[f]
-        times = collect(Tjf(f, step))
-        for i in 2:length(times)
-            t = times[i]
-            prev_t = times[i-1]
-            @constraint(m, W(f, t, step) - W(f, prev_t, step) >= 0)
-        end
-    end
-end
-
-# 6) Fix W variables to 1 at last time in time window (must arrive by last feasible time)
-for f in 1:F
-    for step in 1:N[f]
-        last_t = maximum(Tjf(f, step))
-        @constraint(m, W(f, last_t, step) == 1)
-    end
-end
-
-# --- Optimize ---
-
-optimize!(m)
-
-# --- Output ---
-
-if termination_status(m) == MOI.OPTIMAL
-    println("Optimal total cost: ", objective_value(m))
-else
-    println("No optimal solution found.")
+    println()
 end
