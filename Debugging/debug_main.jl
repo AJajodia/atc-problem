@@ -78,7 +78,7 @@ function S(j, t)
 end
 
 function Tjf(f, j)
-    start_time = Int.(start_df[j, f])
+    start_time = Int.(start_df[j, f]) -1
     end_time = start_time + buffer_time
     return start_time:end_time
 end
@@ -140,7 +140,7 @@ end
 for f in 1:F
     for t in 2:T
         for j in 1:N[f]
-            if t < Tjf(f, 1)[1]
+            if t < Tjf(f, 1)[2]
                 @constraint(m, w[f, t, j] == 0)
             end
         end

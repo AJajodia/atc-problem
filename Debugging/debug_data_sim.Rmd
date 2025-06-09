@@ -67,7 +67,7 @@ for (i in 1:flight_count) {
   }
   A <- airports_pair[1,]
   B <- airports_pair[2,]
-  departure_times[i] <- sample(1:2, 1)
+  departure_times[i] <- sample(3:4, 1)
   depart_airport[i] <- A$airport
   depart_sector[i] <- A$sector
   arrive_airport[i] <- B$airport
