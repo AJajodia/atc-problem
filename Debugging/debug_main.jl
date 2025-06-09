@@ -134,7 +134,7 @@ end
 
 for f in 1:F
     @constraint(m, w[f, Tjf(f, N[f])[end], N[f]] == 1)
-    @constraint(m, w[f, Tjf(f, 1)[end], 1] == 1)
+    @constraint(m, w[f, Tjf(f, 1)[1], 1] == 1)
 end
 
 for f in 1:F

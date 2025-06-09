@@ -3,9 +3,11 @@ using DataFrames
 using CSV
 
 # Load data
-airport_sectors = CSV.read("debug_airport_sectors.csv", DataFrame) 
+airport_sectors = CSV.read("debug_airport_sectors.csv", DataFrame, 
+    types = Dict(:airport => String, :sector => String)) 
 timetable = CSV.read("debug_timetable.csv", DataFrame, 
-    types=Dict(:depart_airport => String, :arrive_airport => String))
+    types=Dict(:depart_airport => String, :arrive_airport => String, :arrive_sector => String,
+    :depart_sector => String))
 
 # Coordinates and sector bounds dictionaries
 airport_dict = Dict(row.airport => (row.airport_lat, row.airport_long) for row in eachrow(airport_sectors))
@@ -86,7 +88,7 @@ function flight_path(row_number, airspeed, step_size)
         if !isnothing(s) && !(s in seen_sectors)
             push!(flight_lines, s)
             push!(flight_times, Int(min_sector_times[s]))
-            push!(flight_min_times, flight_min_times[end] + flight_times[end])
+            push!(flight_min_times, flight_min_times[end] + Int(flight_times[end]))
             push!(seen_sectors, s)
         end
     end
@@ -101,14 +103,15 @@ end
 # Main processing
 airspeed = timetable[1, :airspeed]
 all_paths, all_times, all_min_times = [], [], []
-max_length = 2
+
+global max_length = 2
 
 for i in 1:nrow(timetable)
     path, time, min_time = flight_path(i, airspeed, 0.01)
     push!(all_paths, path)
     push!(all_times, time)
     push!(all_min_times, min_time)
-    max_length = max(max_length, length(path))
+    global max_length = max(max_length, length(path))
 end
 
 # Padding and type conversion
