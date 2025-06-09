@@ -38,7 +38,7 @@ J = nrow(sectors_df)        # Number of sectors (all sectors in system)
 # N[f] = number of steps (sectors/airports) along flight f's path
 N = [sum([P[step, f] != "0" for step in 1:nrow(P)]) for f in 1:ncol(P)]
 
-T = 100  # number of time periods (96 fifteen minutes in 1 day) + buffer (4 time periods)
+T = 200  # number of time periods (96 fifteen minutes in 1 day) + buffer (4 time periods)
 
 # Cost matrix: rows = flights, columns = [ground cost, air cost]
 c = zeros(F, 2)
@@ -75,6 +75,10 @@ function W(f, t, j)
     f = convert(Int, f)
     t = convert(Int, t)
     j = convert(Int, j)
+
+    if t < 1 || t > T
+        return 0.0
+    end
 
     return w[P[j, f]][f, t]
 end
@@ -136,7 +140,7 @@ end
 
 for f in 1:F
     #@constraint(m, sum(t * (W(f,t,1) - W(f,t-1,1)) for t in Tjf(f,1)) >= timetable_df[f, :depart_time])
-    @constraint(m, sum(t * (W(f,t,N[f]) - W(f,t-1,N[f])) for t in Tjf(f,N[f])) >= timetable_df[f, :arrival_time])
+    @constraint(m, sum(t * (W(f,t,N[f]) - W(f,t-1,N[f])) for t in Tjf(f,N[f])) >= Int(start_df[N[f], f]))
 end
 
 # Solving the optimization problem
@@ -145,7 +149,7 @@ JuMP.optimize!(m)
 # Print the information about the optimum.
 println("Total Cost: ", objective_value(m))
 
-for f in 1:F
+for f in 1:5
     println("Flight ", f, ":")
     for j in 1:N[f]
         seg = P[j, f]

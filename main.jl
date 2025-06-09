@@ -38,7 +38,7 @@ J = nrow(sectors_df)        # Number of sectors (all sectors in system)
 # N[f] = number of steps (sectors/airports) along flight f's path
 N = [sum([P[step, f] != "0" for step in 1:nrow(P)]) for f in 1:ncol(P)]
 
-T = 100  # number of time periods (96 fifteen minutes in 1 day) + buffer (4 time periods)
+T = 200  # number of time periods (96 fifteen minutes in 1 day) + buffer (4 time periods)
 
 # Cost matrix: rows = flights, columns = [ground cost, air cost]
 c = zeros(F, 2)
@@ -66,7 +66,7 @@ function S(j, t)
 end
 
 function Tjf(f, j)
-    start_time = start_df[j, f]
+    start_time = Int(start_df[j, f])
     end_time = start_time + buffer_time
     return start_time:end_time
 end
@@ -144,3 +144,4 @@ JuMP.optimize!(m)
 
 # Print the information about the optimum.
 println("Total Cost: ", objective_value(m))
+

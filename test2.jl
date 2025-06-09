@@ -52,4 +52,4 @@ function Tjf(f, j)
     return start_time:end_time
 end
 
-print(Tjf(2))
+print(start_df[N[1], 1])
