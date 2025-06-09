@@ -40,7 +40,11 @@ N = [sum([P[j,i] != "0" for j in 1:nrow(P)]) for i in 1:ncol(P)]
 
 T = 100
 
-c = [10location for flight in 1:F, location in 1:2]
+c = zeros(F, 2)
+for f in 1:F
+    c[f, 1] = 10
+    c[f, 2] = 100
+end
 
 
 function D(k, t)
@@ -76,6 +80,12 @@ end
 w = Dict(sector => [@variable(m, binary = true) for f in 1:F, t in 1:T] for sector in hcat(sectors_list, airports_list))
 
 # Setting the objective
+
+#@objective(m, Min, sum(
+#    c[f,1] * (sum(t * (W(f,t,1) - W(f,t-1,1)) for t in Tjf(f,1)) - timetable_df[f, :depart_time]) +
+#    c[f,2] * (sum(t * (W(f,t,N[f]) - W(f,t-1,N[f])) for t in Tjf(f,N[f])) - timetable_df[f, :arrival_time])
+#    for f in 1:F
+#))
 @objective(m, Min, sum(((c[f,1]-c[f,2]) * sum(t*(W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1))) + (c[f, 2] * sum(t*(W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]))) for f in 1:F))
 
 
@@ -105,6 +115,25 @@ for f in 1:F
             @constraint(m, W(f, t, j) - W(f, t-1, j) >= 0)
         end
     end
+end
+
+for f in 1:F
+    @constraint(m, W(f, Tjf(f, N[f])[end], N[f]) == 1)
+end
+
+for f in 1:F
+    for t in 2:T
+        for j in 1:N[f]
+            if t < Tjf(f, 1)[1]
+                @constraint(m, W(f, t, j) == 0)
+            end
+        end
+    end
+end
+
+for f in 1:F
+    @constraint(m, sum(t * (W(f,t,1) - W(f,t-1,1)) for t in Tjf(f,1)) >= timetable_df[f, :depart_time])
+    @constraint(m, sum(t * (W(f,t,N[f]) - W(f,t-1,N[f])) for t in Tjf(f,N[f])) >= timetable_df[f, :arrival_time])
 end
 
 # Solving the optimization problem
