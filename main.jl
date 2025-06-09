@@ -1,5 +1,4 @@
-# imports
-using JuMP, GLPK, CSV, DataFrames
+using JuMP, GLPK, CSV, DataFramesMore actions
 
 # data preprocessing
 sectors_df = DataFrame(CSV.File("mariah_airport_sectors.csv"))
@@ -14,7 +13,7 @@ sectors = Dict(string.(sectors_df.sector[i]) => sectors_df.sector_capacity[i] fo
 
 sectors_list = string.(sectors_df.sector)
 
-timetable_df = DataFrame(CSV.File("mariah_timetable.csv"))
+timetable_df = DataFrame(CSV.File("mariah_timetable.csv")), DataFrame(CSV.File("mariah_timetable.csv"))
 
 sector_lookup = Dict(sectors_df.sector[i] => i for i in 1:nrow(sectors_df))
 
@@ -22,12 +21,13 @@ airport_lookup = Dict(sectors_df.airport[i] => i for i in 1:nrow(sectors_df))
 
 l = DataFrame(CSV.File("min_times_anu.csv", header = false))
 
-start_df = DataFrame(CSV.File("flight_min_times_anu.csv", header = false))
+start_df = DataFrame(CSV.File("flight_min_times_anu.csv", header = false)), DataFrame(CSV.File("flight_min_times_anu.csv", header = false))
 
 buffer_time = 1
 
 
-P = DataFrame(CSV.File("flight_paths_anu.csv", header = false))
+P = DataFrame(CSV.File("flight_paths_anu.csv", header = false)), DataFrame(CSV.File("flight_paths_anu.csv", header = false))
+
 
 # Preparing an optimization model
 m = Model(GLPK.Optimizer)
@@ -40,16 +40,12 @@ N = [sum([P[j,i] != "0" for j in 1:nrow(P)]) for i in 1:ncol(P)]
 
 T = 100
 
-c = zeros(F, 2)
-for f in 1:F
-    c[f,1] = 10  # ground
-    c[f,2] = 100  # air
-end
+c = [10location for flight in 1:F, location in 1:2]
 
 
 function D(k, t)
     airport = airports_list[k]
-    return airports[airport][8]
+    airports[airport][8]
 end
 
 function A(k, t)
@@ -62,39 +58,40 @@ function S(j, t)
     return sectors[sector]
 end
 
+
+
+
+
+
+
+
+
+
+
+
 function Tjf(f, j)
     start_time = start_df[j, f]
-    #end_time = start_time + buffer_time
-    return start_time:T
-    #return start_time:end_time
+    end_time = start_time + buffer_time
+
+
+    return start_time:end_time
 end
 
 function W(f, t, j)
     f = convert(Int, f)
     t = convert(Int, t)
-    #j = convert(Int, j)
-    node = string(P[j, f])
-    return w[node][f, t]
+    j = convert(Int, j)
 
-    #return w[P[j, f]][f, t]
+    return w[P[j, f]][f, t]
 end
 # Declaring variables
 
-nodes = vcat(sectors_list, airports_list)
-w = Dict(node => [@variable(m, binary=true) for f in 1:F, t in 1:T] for node in nodes)
-#w = Dict(sector => [@variable(m, binary = true) for f in 1:F, t in 1:T] for sector in hcat(sectors_list, airports_list))
-
+w = Dict(sector => [@variable(m, binary = true) for f in 1:F, t in 1:T] for sector in hcat(sectors_list, airports_list))
 
 # Setting the objective
-#@objective(m, Min, sum(((c[f,1]-c[f,2]) * sum(t*(W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1))) + (c[f, 2] * sum(t*(W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]))) for f in 1:F))
-@objective(m, Min, sum(
-    ((c[f,1]-c[f,2]) * sum(t*(W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1))) 
-    + (c[f, 2] * sum(t*(W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]))
-    + ((c[f,2]-c[f,1])*timetable_df[f, :depart_time] 
-    - c[f,2]*timetable_df[f, :arrival_time] 
-    )
-    ) 
-    for f in 1:F))
+@objective(m, Min, sum(((c[f,2]-c[f,1]) * sum(t*(W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1))) + (c[f, 1] * sum(t*(W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]))) for f in 1:F))
+
+
 
 println("Objective good")
 # Adding constraints
@@ -105,15 +102,15 @@ for k in 1:K, t in 2:T
     @constraint(m, sum(W(f, t, N[f]) - W(f, t-1, N[f]) for f in 1:F) <= A(k, t))
 end
 for j in 1:J, t in 2:T
-    @constraint(m, sum(W(f, t, j) - W(f, t, j+1) for f in 1:F if j < N[f]) <= S(j, t))
+    @constraint(m, sum(sum(W(f, t, i) - W(f, t, i+1) for i in 1:N[f]-1) for f in 1:F) <= S(j, t))
 end
 
 # connectivity constraints
 for f in 1:F
-    for j in 1:N[f]-1
+    for i in 1:N[f]-1
         # didn't include connecting flights
-        for t in Tjf(f, j)
-            @constraint(m, W(f, t + l[j, f], j + 1) - W(f, t, j) <= 0)
+        for t in Tjf(f, i)
+            @constraint(m, W(f, t + l[i, f], i + 1) - W(f, t, i) <= 0)
         end
     end
 
@@ -124,23 +121,10 @@ for f in 1:F
     end
 end
 
-for f in 1:F
-    @constraint(m, W(f, Tjf(f, N[f])[end], N[f]) == 1)
-end
 
-for f in 1:F
-    for t in 2:T
-        for j in 1:N[f]
-            if t < Tjf(f, 1)[1]
-                @constraint(m, W(f, t, j) == 0)
-            end
-        end
-    end
-end
+
 
 # Solving the optimization problem
 JuMP.optimize!(m)
 
 # Print the information about the optimum.
-println("Total Cost: ", objective_value(m))
-println(sum(value.(w["A"])))
