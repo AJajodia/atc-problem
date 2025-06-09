@@ -1,0 +1,132 @@
+using Random
+using DataFrames
+using CSV
+
+# Load data
+airport_sectors = CSV.read("debug_airport_sectors.csv", DataFrame) 
+timetable = CSV.read("debug_timetable.csv", DataFrame, 
+    types=Dict(:depart_airport => String, :arrive_airport => String))
+
+# Coordinates and sector bounds dictionaries
+airport_dict = Dict(row.airport => (row.airport_lat, row.airport_long) for row in eachrow(airport_sectors))
+sector_dict = Dict(row.sector => (xmin = row.xmin, xmax = row.xmax, ymin = row.ymin, ymax = row.ymax) for row in eachrow(airport_sectors))
+
+# Generate line path
+function line_path(origin, destination, step_size)
+    start_coord = airport_dict[origin]
+    end_coord = airport_dict[destination]
+
+    x1, y1 = start_coord[2], start_coord[1]
+    x2, y2 = end_coord[2], end_coord[1]
+
+    total_steps = max(
+        ceil(Int, abs(x2 - x1) / step_size),
+        ceil(Int, abs(y2 - y1) / step_size)
+    )
+
+    [(x1 + t * (x2 - x1), y1 + t * (y2 - y1)) for t in (i / total_steps for i in 0:total_steps)]
+end
+
+# Find sector given coordinates
+function find_sector(x, y)
+    for (sector, bounds) in sector_dict
+        if x ≥ bounds.xmin && x ≤ bounds.xmax && y ≥ bounds.ymin && y ≤ bounds.ymax
+            return sector
+        end
+    end
+    return nothing
+end
+
+# Compute sector durations
+function sector_durations(flight_line, airspeed)
+    sector_entries = Dict{Any, Tuple{Float64, Float64}}()
+    sector_exits = Dict{Any, Tuple{Float64, Float64}}()
+
+    for (x, y) in flight_line
+        sector = find_sector(x, y)
+        if isnothing(sector)
+            continue
+        end
+
+        if !haskey(sector_entries, sector)
+            sector_entries[sector] = (x, y)
+        end
+        sector_exits[sector] = (x, y)
+    end
+
+    sector_times = Dict{Any, Int}()
+    for sector in keys(sector_entries)
+        entry = sector_entries[sector]
+        exit = sector_exits[sector]
+        dist = sqrt((100*exit[1] - 100*entry[1])^2 + (100*exit[2] - 100*entry[2])^2)
+        time = dist / airspeed 
+        sector_times[sector] = Int(round(time + 1))  # round and convert
+    end
+
+    return sector_times
+end
+
+# Build full flight path and time data
+function flight_path(row_number, airspeed, step_size)
+    depart_airport = timetable[row_number, :depart_airport]
+    arrive_airport = timetable[row_number, :arrive_airport]
+    depart_time = Int(timetable[row_number, :depart_time])
+
+    flight_line = line_path(depart_airport, arrive_airport, step_size)
+    min_sector_times = sector_durations(flight_line, airspeed)
+
+    flight_lines = [depart_airport]
+    flight_times = [0]
+    flight_min_times = [depart_time]
+
+    seen_sectors = Set{Any}()
+
+    for (x, y) in flight_line
+        s = find_sector(x, y)
+        if !isnothing(s) && !(s in seen_sectors)
+            push!(flight_lines, s)
+            push!(flight_times, Int(min_sector_times[s]))
+            push!(flight_min_times, flight_min_times[end] + flight_times[end])
+            push!(seen_sectors, s)
+        end
+    end
+
+    push!(flight_lines, arrive_airport)
+    push!(flight_times, 0)
+    push!(flight_min_times, flight_min_times[end])
+
+    return flight_lines, flight_times, flight_min_times
+end
+
+# Main processing
+airspeed = timetable[1, :airspeed]
+all_paths, all_times, all_min_times = [], [], []
+max_length = 2
+
+for i in 1:nrow(timetable)
+    path, time, min_time = flight_path(i, airspeed, 0.01)
+    push!(all_paths, path)
+    push!(all_times, time)
+    push!(all_min_times, min_time)
+    max_length = max(max_length, length(path))
+end
+
+# Padding and type conversion
+padded_lines = [vcat(path, fill("0", max_length - length(path))) for path in all_paths]
+padded_times = [vcat(Int.(time), fill(0, max_length - length(time))) for time in all_times]
+padded_min_times = [vcat(Int.(min_time), fill(0, max_length - length(min_time))) for min_time in all_min_times]
+
+result_lines = reduce(hcat, padded_lines)
+result_times = Int.(reduce(hcat, padded_times))
+result_min_times = Int.(reduce(hcat, padded_min_times))
+
+column_names = ["flight_$(i)" for i in 1:nrow(timetable)]
+
+padded_lines_df = DataFrame(result_lines, Symbol.(column_names))
+padded_times_df = DataFrame(result_times, Symbol.(column_names))
+padded_min_times_df = DataFrame(result_min_times, Symbol.(column_names))
+
+# Save output
+CSV.write("debug_flight_paths.csv", padded_lines_df; writeheader=false)
+CSV.write("debug_min_times.csv", padded_times_df; writeheader=false)
+CSV.write("debug_flight_min_times.csv", padded_min_times_df; writeheader=false)

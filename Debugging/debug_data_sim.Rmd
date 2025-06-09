@@ -1,0 +1,126 @@
+---
+title: "data_sim2"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+set.seed(949)
+```
+
+```{r}
+sector_capacity <- 3
+depart_capacity <- 5
+arrival_capacity <- 3
+sector_count <- 2
+
+lats <- numeric(sector_count^2)
+longs <- numeric(sector_count^2)
+
+#create sector boundaries (3x3 grid of 5x5 squares)
+xmins <- numeric(sector_count^2)
+xmaxs <- numeric(sector_count^2)
+ymins <- numeric(sector_count^2)
+ymaxs <- numeric(sector_count^2)
+
+for (i in 1:sector_count) {
+  for (j in 1: sector_count) {
+    lat_range <- c(5 * i - 5, 5 * i)
+    long_range <- c(5 * j - 5, 5 * j)
+    lat <- runif(1, min = lat_range[1], max = lat_range[2])[1]
+    long <- runif(1, min = long_range[1], max = long_range[2])[1]
+    lats[sector_count * (i-1) + j] <- lat
+    longs[sector_count * (i-1) + j] <- long
+    
+    xmins[sector_count * (i-1) + j] <- long_range[1]
+    xmaxs[sector_count * (i-1) + j] <- long_range[2]
+    ymins[sector_count * (i-1) + j] <- lat_range[1]
+    ymaxs[sector_count * (i-1) + j] <- lat_range[2]
+  }
+}
+
+airport_sectors <- tibble(airport = c("A", "B", "C", "D"), airport_long = longs, airport_lat = lats, sector = c(1:sector_count^2), xmin = xmins, xmax = xmaxs, ymin = ymins, ymax = ymaxs, sector_capacity, depart_capacity, arrival_capacity, sector_count)
+```
+
+```{r}
+flight_count <- 4
+turnaround_time <- 4
+ground_cost <- 5
+air_cost <- 10
+time_buffer <- 4
+airspeed <- 150
+
+departure_times <- numeric(flight_count)
+arrival_times <- numeric(flight_count)
+depart_airport <- numeric(flight_count)
+arrive_airport <- numeric(flight_count)
+depart_sector <- numeric(flight_count)
+arrive_sector <- numeric(flight_count)
+
+for (i in 1:flight_count) {
+  airports_pair <- slice_sample(airport_sectors, n =  2)
+  while (any(is.na(airports_pair))) {
+    airports_pair <- slice_sample(airport_sectors, n = 2)
+  }
+  A <- airports_pair[1,]
+  B <- airports_pair[2,]
+  departure_times[i] <- sample(1:96, 1)
+  depart_airport[i] <- A$airport
+  depart_sector[i] <- A$sector
+  arrive_airport[i] <- B$airport
+  arrive_sector[i] <- B$sector
+  arrival_times[i] <- floor(sqrt((A$airport_lat*100 - B$airport_lat*100)^2 +
+                             (A$airport_long*100 - B$airport_long*100)^2)/airspeed + departure_times[i])
+}
+
+timetable <- tibble(flight_id = 1:flight_count, depart_airport = depart_airport, depart_sector = depart_sector, arrive_airport = arrive_airport, arrive_sector = arrive_sector, depart_time = departure_times, arrival_time = arrival_times, airspeed, turnaround_time, ground_cost, air_cost, time_buffer)
+```
+
+```{r}
+write.csv(airport_sectors, "debug_airport_sectors.csv")
+write.csv(timetable, "debug_timetable.csv")
+```
+
+
+```{r}
+airport_sectors %>%
+  ggplot() +
+  geom_point(data = drop_na(airport_sectors), 
+             aes(x = airport_long, y = airport_lat, color = airport), size = 4) +
+  geom_text(data = drop_na(airport_sectors), 
+            aes(x = airport_long, y = airport_lat, color = airport, label = airport), vjust = -1, size = 5) +
+  geom_text(data = mutate(airport_sectors, sector_long = (xmin+xmax)/2, 
+                           sector_lat = (ymin+ymax)/2),
+            aes(x = sector_long, y = sector_lat, label = sector), size = 7) +
+  geom_vline(xintercept = 5) +
+  geom_vline(xintercept = 10) +
+  geom_vline(xintercept = 15) +
+  geom_hline(yintercept = 5) +
+  geom_hline(yintercept = 10) +
+  geom_hline(yintercept = 15) +
+  geom_vline(xintercept = 0) +
+  geom_hline(yintercept = 0) +
+  theme_void() +
+  theme(legend.position="none",
+        panel.background = element_rect(fill = "gray95")) +
+  coord_sf(xlim = c(0, 15), ylim = c(0, 15))
+```
+
+
+```{r}
+# sector_size = 5
+# 
+# griddf <- expand.grid(lat = seq(from = 0, by = 5, l = 3),
+#                       lng = seq(from = 0, by = 5, l = 3)) %>%
+#   mutate(
+#     xmin = lng,
+#     xmax = lng + sector_size,
+#     ymin = lat, 
+#     ymax = lat + sector_size, 
+#     sector_id = row_number()
+#   )
+```
+
