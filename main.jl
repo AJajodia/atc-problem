@@ -22,7 +22,7 @@ airport_lookup = Dict(sectors_df.airport[i] => i for i in 1:nrow(sectors_df))
 # Other data
 l = DataFrame(CSV.File("min_times_anu.csv", header = false))
 start_df = DataFrame(CSV.File("flight_min_times_anu.csv", header = false))
-buffer_time = 1
+buffer_time = 4
 
 # Flight paths: rows = steps along path, cols = flights
 P = DataFrame(CSV.File("flight_paths_anu.csv", header = false))
