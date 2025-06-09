@@ -1,4 +1,4 @@
-# imports
+# importsAdd commentMore actions
 using JuMP, GLPK, CSV, DataFrames
 
 # --- Data preprocessing ---
@@ -90,33 +90,20 @@ w = Dict(sector => [@variable(m, binary = true) for f in 1:F, t in 1:T] for sect
 #    for f in 1:F
 #))
 #@objective(m, Min, sum(((c[f,1]-c[f,2]) * sum(t*(W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1))) + (c[f, 2] * sum(t*(W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]))) for f in 1:F))
-#@objective(m, Min, sum(
-#    c[f,1] * (sum(t * (W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1) if t > 1) - start_df[1, f]) +
-#    c[f,2] * (sum(t * (W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]) if t > 1) - start_df[N[f], f])
-#    - c[f,2]* (sum(t * (W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1) if t > 1) - start_df[1, f])
-#    for f in 1:F
-#))
-#@objective(m, Min, sum(
-#    c[f,1] * sum(t * (W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1) if t > 1) -
-#    c[f,1] * start_df[1, f] +
-#    c[f,2] * sum(t * (W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]) if t > 1) -
-#    c[f,2] * start_df[N[f], f]
-#    for f in 1:F
-#))
-#@objective(m, Min, sum(
-#    c[f,1] * sum(t * (W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1) if t > 1) -
-#    c[f,1] * start_df[1, f] +
-#    c[f,2] * sum(t * (W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]) if t > 1) -
-#    c[f,2] * start_df[N[f], f] - c[f,2] * (sum(t * (W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1) if t > 1) -
-#     start_df[1, f])
-#    for f in 1:F
-#))
 @objective(m, Min, sum(
-    c[f,1] * (sum(t * (W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1) if t > 1) - start_df[1, f]) +
-    c[f,2] * (sum(t * (W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]) if t > 1) - start_df[N[f], f])
-    - c[f,2]* (sum(t * (W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1) if t > 1) - start_df[1, f])
+    c[f,1] * sum(t * (W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1) if t > 1) -
+    c[f,1] * start_df[1, f] +
+    c[f,2] * sum(t * (W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]) if t > 1) -
+    c[f,2] * start_df[N[f], f]
     for f in 1:F
-))
+        ))
+#@objective(m, Min, sum(
+#    c[f,1] * sum(t * (W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1) if t > 1) -
+#    c[f,1] * timetable_df[f, :depart_time] +
+#    c[f,2] * sum(t * (W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]) if t > 1) -
+#    c[f,2] * timetable_df[f, :arrival_time]
+#    for f in 1:F
+#))
 
 println("Objective good")
 # Adding constraints
@@ -133,10 +120,9 @@ end
 # connectivity constraints
 for f in 1:F
     for j in 1:N[f]-1
+        # didn't include connecting flights
         for t in Tjf(f, j)
-            if t + l[j,f] <= T  # ensure time index valid
-                @constraint(m, W(f, t + l[j,f], j + 1) <= W(f, t, j))
-            end
+            @constraint(m, W(f, t + l[j, f], j + 1) - W(f, t, j) <= 0)
         end
     end
 
@@ -156,13 +142,14 @@ for f in 1:F
         for j in 1:N[f]
             if t < Tjf(f, 1)[1]
                 @constraint(m, W(f, t, j) == 0)
+
             end
         end
     end
 end
 
 for f in 1:F
-    #@constraint(m, sum(t * (W(f,t,1) - W(f,t-1,1)) for t in Tjf(f,1)) >= start_df[1, f])
+    #@constraint(m, sum(t * (W(f,t,1) - W(f,t-1,1)) for t in Tjf(f,1)) >= timetable_df[f, :depart_time])
     @constraint(m, sum(t * (W(f,t,N[f]) - W(f,t-1,N[f])) for t in Tjf(f,N[f])) >= start_df[N[f], f])
 end
 
@@ -185,28 +172,25 @@ end
 
 println("\nDelay Report:")
 for f in 1:F
-    # Actual departure and arrival times
-    act_dep = sum(t * (value(W(f, t, 1)) - value(W(f, t - 1, 1))) for t in Tjf(f, 1) if t > 1)
-    act_arr = sum(t * (value(W(f, t, N[f])) - value(W(f, t - 1, N[f]))) for t in Tjf(f, N[f]) if t > 1)
-
-    # Minimum feasible departure and arrival
-    min_dep = start_df[1, f]
-    min_arr = start_df[N[f], f]
-
-    # Compute delays (relative to minimum feasible time)
-    dep_delay = max(0, act_dep - min_dep)
-    arr_delay = max(0, act_arr - min_arr)
-
-    # Report delays
+    # Compute actual departure time
+    dep_time = sum(t * (value(W(f, t, 1)) - value(W(f, t - 1, 1))) for t in Tjf(f, 1) if t > 1)
+    sch_dep = timetable_df[f, :depart_time]
+    
+    # Compute actual arrival time
+    arr_time = sum(t * (value(W(f, t, N[f])) - value(W(f, t - 1, N[f]))) for t in Tjf(f, N[f]) if t > 1)
+    sch_arr = timetable_df[f, :arrival_time]
+    
+    # Delay amounts
+    dep_delay = max(0, dep_time - sch_dep)
+    arr_delay = max(0, arr_time - sch_arr)
+    
     if dep_delay > 0 || arr_delay > 0
         println("Flight $f delayed:")
         if dep_delay > 0
-            println("  Ground Delay: $dep_delay (Sched.: $min_dep, Actual: $act_dep)")
+            println("  Departure Delay: $dep_delay (Scheduled: $sch_dep, Actual: $dep_time)")
         end
         if arr_delay > 0
-            println("  Air Delay: $arr_delay (Sched.: $min_arr, Actual: $act_arr)")
+            println("  Arrival Delay: $arr_delay (Scheduled: $sch_arr, Actual: $arr_time)")
         end
-    else
-        println("Flight $f on time.")
     end
 end
