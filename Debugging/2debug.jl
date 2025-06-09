@@ -22,7 +22,7 @@ K = string.(airports_df.airport)         # Airports
 sectors_list = string.(sectors_df.sector)   # sectors without airports
 
 J = all_sectors_list                    # all Sectors
-T = 1:15                                # Time periods
+T = 1:20                                # Time periods
 
 P = Dict(f => flight_paths[!, f] for f in F)  
 # P[f] = [sector_1, ..., sector_Nf] including airports,
@@ -32,7 +32,7 @@ N = Dict(f => sum([P[f][step] != "0" for step in 1:nrow(flight_paths)]) for f in
 
 df = Dict(f => min_timetable_df[1, f] for f in F)         # df[f] = Scheduled departure time
 rf = Dict(f => min_timetable_df[N[f], f] for f in F)      # Scheduled arrival time
-#sf = Dict{Int, Int}()         # Turnaround time
+#sf = Dict{Int, Int}()                                     # Turnaround time
 
 cg = Dict(f => 10 for f in F)     # Ground delay cost, $10 for each flight
 ca = Dict(f => 100 for f in F)     # Air delay cost, $100 for each flight
@@ -103,8 +103,7 @@ end
 #C = Vector{Tuple{Int, Int}}()  # Set of (f, f*) aircraft connections
 
 # MAIN VARIABLES (w's)
-allowed_indices = [(f,j,t) for f in F for j in P[f] for t in Tfj[(f,j)]]
-@variable(model, w[allowed_indices], Bin)
+@variable(model, w[f in F, j in P[f], t in Tfj[(f,j)]], Bin)
 
 #  HELPER VARIABLES (u's)
 # write u_ftj for simplicity
@@ -154,16 +153,36 @@ for j in J, t in T
 end
 
 # Min time in each sector
+#for f in F, i in 1:(N[f] - 1)
+#    j = P[f][i]
+#    j_next = P[f][i + 1]
+#    for t in Tfj[(f, j)]
+#        t_exit = t + lfj[(f, j)]
+#        if t_exit in Tfj[(f, j_next)]
+#            @constraint(model, w[f, j_next, t_exit] <= w[f, j, t])
+#        end
+#    end
+#end
 for f in F, i in 1:(N[f] - 1)
     j = P[f][i]
     j_next = P[f][i + 1]
-    for t in Tfj[(f, j)]
-        t_exit = t + lfj[(f, j)]
-        if t_exit in Tfj[(f, j_next)]
-            @constraint(model, w[f, j_next, t_exit] <= w[f, j, t])
+    dwell = lfj[(f, j)]
+
+    for t_entry in Tfj[(f, j)]
+        t_exit = t_entry + dwell
+        if t_exit > T[end]
+            continue
+        end
+
+        # Ensure that if a flight enters j at t_entry, it cannot enter j_next before t_exit
+        for t_next in Tmin_fj[(f, j_next)]:(t_exit - 1)
+            if t_next in Tfj[(f, j_next)]
+                @constraint(model, w[f, j_next, t_next] <= 1 - u[f, j, t_entry])
+            end
         end
     end
 end
+
 
 # can't "un-arrive"
 for f in F

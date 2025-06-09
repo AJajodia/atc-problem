@@ -89,8 +89,21 @@ w = Dict(sector => [@variable(m, binary = true) for f in 1:F, t in 1:T] for sect
 #    c[f,2] * (sum(t * (W(f,t,N[f]) - W(f,t-1,N[f])) for t in Tjf(f,N[f])) - timetable_df[f, :arrival_time])
 #    for f in 1:F
 #))
-@objective(m, Min, sum(((c[f,1]-c[f,2]) * sum(t*(W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1))) + (c[f, 2] * sum(t*(W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]))) for f in 1:F))
-
+#@objective(m, Min, sum(((c[f,1]-c[f,2]) * sum(t*(W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1))) + (c[f, 2] * sum(t*(W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]))) for f in 1:F))
+#@objective(m, Min, sum(
+#    c[f,1] * sum(t * (W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1) if t > 1) -
+#    c[f,1] * start_df[1, f] +
+#    c[f,2] * sum(t * (W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]) if t > 1) -
+#    c[f,2] * start_df[N[f], f]
+#    for f in 1:F
+#))
+@objective(m, Min, sum(
+    c[f,1] * sum(t * (W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1) if t > 1) -
+    c[f,1] * timetable_df[f, :depart_time] +
+    c[f,2] * sum(t * (W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]) if t > 1) -
+    c[f,2] * timetable_df[f, :arrival_time]
+    for f in 1:F
+))
 
 println("Objective good")
 # Adding constraints
@@ -136,7 +149,7 @@ end
 
 for f in 1:F
     #@constraint(m, sum(t * (W(f,t,1) - W(f,t-1,1)) for t in Tjf(f,1)) >= timetable_df[f, :depart_time])
-    #@constraint(m, sum(t * (W(f,t,N[f]) - W(f,t-1,N[f])) for t in Tjf(f,N[f])) >= timetable_df[f, :arrival_time])
+    @constraint(m, sum(t * (W(f,t,N[f]) - W(f,t-1,N[f])) for t in Tjf(f,N[f])) >= start_df[N[f], f])
 end
 
 # Solving the optimization problem
@@ -144,4 +157,41 @@ JuMP.optimize!(m)
 
 # Print the information about the optimum.
 println("Total Cost: ", objective_value(m))
+#for sector in keys(w)
+#    println("Sector/Airport: ", sector)
+#    for f in 1:F
+#        for t in 1:T
+#            val = value(w[sector][f, t])
+#            if !isnothing(val) && val > 0.5
+#                println("  Flight $f, Time $t: $val")
+#            end
+#        end
+#    end
+#end
+
+println("\nDelay Report:")
+for f in 1:F
+    # Compute actual departure time
+    dep_time = sum(t * (value(W(f, t, 1)) - value(W(f, t - 1, 1))) for t in Tjf(f, 1) if t > 1)
+    sch_dep = timetable_df[f, :depart_time]
+    
+    # Compute actual arrival time
+    arr_time = sum(t * (value(W(f, t, N[f])) - value(W(f, t - 1, N[f]))) for t in Tjf(f, N[f]) if t > 1)
+    sch_arr = timetable_df[f, :arrival_time]
+    
+    # Delay amounts
+    dep_delay = max(0, dep_time - sch_dep)
+    arr_delay = max(0, arr_time - sch_arr)
+    
+    if dep_delay > 0 || arr_delay > 0
+        println("Flight $f delayed:")
+        if dep_delay > 0
+            println("  Departure Delay: $dep_delay (Scheduled: $sch_dep, Actual: $dep_time)")
+        end
+        if arr_delay > 0
+            println("  Arrival Delay: $arr_delay (Scheduled: $sch_arr, Actual: $arr_time)")
+        end
+    end
+end
+
 
