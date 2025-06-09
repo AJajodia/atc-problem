@@ -12,9 +12,9 @@ set.seed(949)
 ```
 
 ```{r}
-sector_capacity <- 3
-depart_capacity <- 5
-arrival_capacity <- 3
+sector_capacity <- 1
+depart_capacity <- 1
+arrival_capacity <- 1
 sector_count <- 2
 
 lats <- numeric(sector_count^2)
@@ -67,7 +67,7 @@ for (i in 1:flight_count) {
   }
   A <- airports_pair[1,]
   B <- airports_pair[2,]
-  departure_times[i] <- sample(1:96, 1)
+  departure_times[i] <- sample(1:10, 1)
   depart_airport[i] <- A$airport
   depart_sector[i] <- A$sector
   arrive_airport[i] <- B$airport
