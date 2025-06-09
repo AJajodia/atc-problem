@@ -46,7 +46,7 @@ airport_sectors <- tibble(airport = c("A", NA, "B", NA, "C", "D", "E", "F", "G")
 ```
 
 ```{r}
-flight_count <- 100
+flight_count <- 20
 turnaround_time <- 4
 ground_cost <- 5
 air_cost <- 10

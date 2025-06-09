@@ -103,8 +103,8 @@ end
 #C = Vector{Tuple{Int, Int}}()  # Set of (f, f*) aircraft connections
 
 # MAIN VARIABLES (w's)
-
-@variable(model, w[f in F, j in P[f], t in Tfj[(f, j)]], Bin)
+allowed_indices = [(f,j,t) for f in F for j in P[f] for t in Tfj[(f,j)]]
+@variable(model, w[allowed_indices], Bin)
 
 #  HELPER VARIABLES (u's)
 # write u_ftj for simplicity
@@ -165,20 +165,6 @@ for f in F, i in 1:(N[f] - 1)
     end
 end
 
-# Turnaround constraints
-#for (f1, f2) in C
-#    dep_airport = P[f2][1]
-#    arr_airport = P[f1][end]
-#    if dep_airport == arr_airport
-#        for t in Tf[(f1, arr_airport)]
-#            t2 = t + sf[f1]
-#            if t2 in Tf[(f2, dep_airport)]
-#                @constraint(model, w[f2, dep_airport, t2] <= w[f1, arr_airport, t])
-#            end
-#        end
-#    end
-#end
-
 # can't "un-arrive"
 for f in F
     for j in P[f]
@@ -190,22 +176,41 @@ for f in F
     end
 end
 
-# Force w = 0 before Tmin
-#for f in F, j in P[f]
-#    t_max = Tmax_fj[(f, j)]
-#    if haskey(w, (f, j, t_max))
-#        fix(w[f, j, t_max], 1; force = true)
-#    end
-#end
+# must start at airport (w = 1 at start airport)
+for f in F
+    for t in T
+    if t in Tfj[(f, P[f][1])]
+        @constraint(model, w[f, P[f][1], t] == 1)
+    end
+end
+end
 
-# Force w = 1 at Tmax
-#for f in F, j in P[f]
-#    for t in ((Tmin_fj[(f, j)] - 1):-1:1)
-#        if haskey(w, (f, j, t))
-#            fix(w[f, j, t], 0; force = true)
+# cannot arrive before scheduled (minimum) arrival time
+#for f in F
+#    j = P[f][end]  # arrival airport
+#    for t in Tfj[(f, j)]
+#        if t < rf[f]
+#            @constraint(model, u[f, j, t] == 0)
 #        end
 #    end
 #end
+
+#Force w = 0 before Tmin
+for f in F, j in P[f]
+    t_max = Tmax_fj[(f, j)]
+    if haskey(w, (f, j, t_max))
+        fix(w[f, j, t_max], 1; force = true)
+    end
+end
+
+#Force w = 1 at Tmax
+for f in F, j in P[f]
+    for t in ((Tmin_fj[(f, j)] - 1):-1:1)
+        if haskey(w, (f, j, t))
+            fix(w[f, j, t], 0; force = true)
+        end
+    end
+end
 
 # SOLVE
 
