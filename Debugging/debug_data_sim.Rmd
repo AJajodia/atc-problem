@@ -12,7 +12,7 @@ set.seed(949)
 ```
 
 ```{r}
-sector_capacity <- 1
+sector_capacity <- 4
 depart_capacity <- 1
 arrival_capacity <- 1
 sector_count <- 2
