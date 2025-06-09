@@ -16,16 +16,27 @@ sector_capacity = Dict(string.(sectors_df.sector[i]) => sectors_df.sector_capaci
 
 # Timetable and lookup dictionaries
 timetable_df = DataFrame(CSV.File("mariah_timetable.csv"))
+timetable_df = vcat(timetable_df, timetable_df)
 sector_lookup = Dict(sectors_list[i] => i for i in 1:nrow(sectors_df))
 airport_lookup = Dict(sectors_df.airport[i] => i for i in 1:nrow(sectors_df))
 
 # Other data
 l = DataFrame(CSV.File("min_times_anu.csv", header = false))
+l2 = copy(l)
+rename!(l2, Symbol.(string.("col", 1:ncol(l))))
+l = hcat(l, l2)
+
 start_df = DataFrame(CSV.File("flight_min_times_anu.csv", header = false))
+start_df2 = copy(start_df)
+rename!(start_df2, Symbol.(string.("col", 1:ncol(start_df))))
+start_df = hcat(start_df, start_df2)
 buffer_time = 4
 
 # Flight paths: rows = steps along path, cols = flights
 P = DataFrame(CSV.File("flight_paths_anu.csv", header = false))
+P2 = copy(P)
+rename!(P2, Symbol.(string.("col", 1:ncol(P))))
+P = hcat(P, P2)
 
 # --- Model setup ---
 
@@ -90,13 +101,14 @@ w = Dict(sector => [@variable(m, binary = true) for f in 1:F, t in 1:T] for sect
 #    for f in 1:F
 #))
 #@objective(m, Min, sum(((c[f,1]-c[f,2]) * sum(t*(W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1))) + (c[f, 2] * sum(t*(W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]))) for f in 1:F))
-#@objective(m, Min, sum(
-#    c[f,1] * sum(t * (W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1) if t > 1) -
-#    c[f,1] * start_df[1, f] +
-#    c[f,2] * sum(t * (W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]) if t > 1) -
-#    c[f,2] * start_df[N[f], f]
-#    for f in 1:F
-#))
+@objective(m, Min, sum(
+    c[f,1] * sum(t * (W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1) if t > 1) -
+    c[f,1] * start_df[1, f] +
+    c[f,2] * sum(t * (W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]) if t > 1) -
+    c[f,2] * start_df[N[f], f] - c[f,2] * (sum(t * (W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1) if t > 1) -
+     start_df[1, f])
+    for f in 1:F
+))
 #@objective(m, Min, sum(
 #    c[f,1] * sum(t * (W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1) if t > 1) -
 #    c[f,1] * timetable_df[f, :depart_time] +
@@ -105,12 +117,12 @@ w = Dict(sector => [@variable(m, binary = true) for f in 1:F, t in 1:T] for sect
 #    for f in 1:F
 #))
 
-@objective(m, Min, sum(
-    c[f,1] * (sum(t * (W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1) if t > 1) - start_df[1, f]) +
-    c[f,2] * (sum(t * (W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]) if t > 1) - start_df[N[f], f])
-    - c[f,2]* (sum(t * (W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1) if t > 1) - start_df[1, f])
-    for f in 1:F
-))
+#@objective(m, Min, sum(
+#    c[f,1] * (sum(t * (W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1) if t > 1) - start_df[1, f]) +
+#    c[f,2] * (sum(t * (W(f, t, N[f]) - W(f, t-1, N[f])) for t in Tjf(f, N[f]) if t > 1) - start_df[N[f], f])
+#    - c[f,2]* (sum(t * (W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1) if t > 1) - start_df[1, f])
+#    for f in 1:F
+#))
 
 println("Objective good")
 # Adding constraints
@@ -155,7 +167,7 @@ for f in 1:F
 end
 
 for f in 1:F
-    @constraint(m, sum(t * (W(f,t,1) - W(f,t-1,1)) for t in Tjf(f,1)) >= timetable_df[f, :depart_time])
+    #@constraint(m, sum(t * (W(f,t,1) - W(f,t-1,1)) for t in Tjf(f,1)) >= timetable_df[f, :depart_time])
     @constraint(m, sum(t * (W(f,t,N[f]) - W(f,t-1,N[f])) for t in Tjf(f,N[f])) >= start_df[N[f], f])
 end
 
