@@ -15,7 +15,8 @@ set.seed(949)
 sector_capacity <- 1
 depart_capacity <- 1
 arrival_capacity <- 1
-sector_count <- 4
+sector_count <- 2
+airport_capacity <- 4
 
 lats <- numeric(sector_count^2)
 longs <- numeric(sector_count^2)
@@ -42,7 +43,7 @@ for (i in 1:sector_count) {
   }
 }
 
-airport_sectors <- tibble(airport = c("A", "B", "C", "D"), airport_long = longs, airport_lat = lats, sector = c(1:sector_count^2), xmin = xmins, xmax = xmaxs, ymin = ymins, ymax = ymaxs, sector_capacity, depart_capacity, arrival_capacity, sector_count)
+airport_sectors <- tibble(airport = c("A", "B", "C", "D"), airport_long = longs, airport_lat = lats, sector = c(1:sector_count^2), xmin = xmins, xmax = xmaxs, ymin = ymins, ymax = ymaxs, sector_capacity, airport_capacity, depart_capacity, arrival_capacity, sector_count)
 ```
 
 ```{r}

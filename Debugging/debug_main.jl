@@ -1,4 +1,4 @@
-# importsAdd commentMore actions
+# imports
 using JuMP, GLPK, CSV, DataFrames
 
 # --- Data preprocessing ---
@@ -50,7 +50,7 @@ J = length(all_sectors_list)        # Number of sectors (all sectors in system)
 # N[f] = number of steps (sectors/airports) along flight f's path
 N = [sum([P[step, f] != "0" for step in 1:nrow(P)]) for f in 1:ncol(P)]
 
-T = 200  # number of time periods (96 fifteen minutes in 1 day) + buffer (4 time periods)
+T = 15  # number of time periods (96 fifteen minutes in 1 day) + buffer (4 time periods)
 
 # Cost matrix: rows = flights, columns = [ground cost, air cost]
 c = zeros(F, 2)
@@ -79,7 +79,7 @@ end
 
 function Tjf(f, j)
     start_time = Int.(start_df[j, f])
-    end_time = start_time + l[j, f] + buffer_time
+    end_time = T
     return start_time:end_time
 end
 
@@ -101,13 +101,14 @@ end
 #    c[f,2] * (sum(t * (W(f,t,N[f]) - W(f,t-1,N[f])) for t in Tjf(f,N[f])) - timetable_df[f, :arrival_time])
 #    for f in 1:F
 #))
-@objective(m, Min, sum(((c[f,1]-c[f,2]) * sum(t*(w[f, t, 1] - w[f, t-1, 1]) for t in (Tjf(f, 1) .+1) )) + (c[f, 2] * sum(t*(w[f, t, N[f]] - w[f, t-1, N[f]]) for t in (Tjf(f, N[f]) .+1) )) for f in 1:F))
+@objective(m, Min, sum(((c[f,1]-c[f,2]) * sum(t*(w[f, t, 1] - w[f, t-1, 1]) for t in (Tjf(f, 1)) )) + (c[f, 2] * sum(t*(w[f, t, N[f]] - w[f, t-1, N[f]]) for t in (Tjf(f, N[f])) )) for f in 1:F))
 
 
 println("Objective good")
 # Adding constraints
 
 # airport and sector capacity constraints
+
 for k in 1:K, t in 2:T
     @constraint(m, sum(w[f, t, 1] - w[f, t-1, 1] for f in 1:F) <= D(k, t))
     @constraint(m, sum(w[f, t, N[f]] - w[f, t-1, N[f]] for f in 1:F) <= A(k, t))
@@ -120,7 +121,8 @@ end
 for f in 1:F
     for j in 1:N[f]-1
         # didn't include connecting flights
-        for t in Tjf(f, j)
+        # t + l[j, f] should be within time frame
+        for t in Tjf(f, j)[1]:(Tjf(f, j)[end]- 3)
             @constraint(m, w[f, t + l[j, f], j + 1] - w[f, t, j] <= 0)
         end
     end
