@@ -5,3 +5,5 @@ function Tjf(f, j)
     end_time = start_time + buffer_time
     return start_time:end_time
 end
+
+Tjf(1,1)

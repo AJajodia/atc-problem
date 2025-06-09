@@ -15,7 +15,7 @@ set.seed(949)
 sector_capacity <- 1
 depart_capacity <- 1
 arrival_capacity <- 1
-sector_count <- 2
+sector_count <- 4
 
 lats <- numeric(sector_count^2)
 longs <- numeric(sector_count^2)

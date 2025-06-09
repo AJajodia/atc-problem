@@ -1,4 +1,4 @@
-# imports
+# importsAdd commentMore actions
 using JuMP, GLPK, CSV, DataFrames
 
 # --- Data preprocessing ---
@@ -78,8 +78,8 @@ function S(j, t)
 end
 
 function Tjf(f, j)
-    start_time = Int.(start_df[j, f]) -1
-    end_time = start_time + buffer_time
+    start_time = Int.(start_df[j, f])
+    end_time = start_time + l[j, f] + buffer_time
     return start_time:end_time
 end
 
@@ -134,13 +134,13 @@ end
 
 for f in 1:F
     @constraint(m, w[f, Tjf(f, N[f])[end], N[f]] == 1)
-    @constraint(m, w[f, Tjf(f, 1)[1], 1] == 1)
+    #@constraint(m, w[f, Tjf(f, 1)[1], 1] == 1)
 end
 
 for f in 1:F
     for t in 2:T
         for j in 1:N[f]
-            if t < Tjf(f, 1)[2]
+            if t < Tjf(f, 1)[1]
                 @constraint(m, w[f, t, j] == 0)
             end
         end
