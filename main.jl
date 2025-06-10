@@ -1,7 +1,7 @@
 # imports
 using JuMP, GLPK, CSV, DataFrames
 
-# --- Data preprocessing ---
+# Data preprocessing
 
 sectors_df = DataFrame(CSV.File("mariah_airport_sectors.csv"))
 airports_df = filter(row -> all(x -> x != "NA", row), sectors_df)
@@ -164,44 +164,5 @@ JuMP.optimize!(m)
 
 # Print the information about the optimum.
 println("Total Cost: ", objective_value(m))
-#for sector in keys(w)
-#    println("Sector/Airport: ", sector)
-#    for f in 1:F
-#        for t in 1:T
-#            val = value(w[sector][f, t])
-#            if !isnothing(val) && val > 0.5
-#                println("  Flight $f, Time $t: $val")
-#            end
-#        end
-#    end
-#end
-
-println("\nDelay Report (Relative to Minimum Feasible Times):")
-for f in 1:F
-    # Actual departure and arrival times
-    act_dep = sum(t * (value(W(f, t, 1)) - value(W(f, t - 1, 1))) for t in Tjf(f, 1) if t > 1)
-    act_arr = sum(t * (value(W(f, t, N[f])) - value(W(f, t - 1, N[f]))) for t in Tjf(f, N[f]) if t > 1)
-
-    # Minimum feasible departure and arrival
-    min_dep = start_df[1, f]
-    min_arr = start_df[N[f], f]
-
-    # Compute delays (relative to minimum feasible time)
-    dep_delay = max(0, act_dep - min_dep)
-    arr_delay = max(0, act_arr - min_arr)
-
-    # Report delays
-    if dep_delay > 0 || arr_delay > 0
-        println("Flight $f delayed:")
-        if dep_delay > 0
-            println("  Ground Delay: $dep_delay (Min Feasible: $min_dep, Actual: $act_dep)")
-        end
-        if arr_delay > 0
-            println("  Air Delay: $arr_delay (Min Feasible: $min_arr, Actual: $act_arr)")
-        end
-    else
-        println("Flight $f on time.")
-    end
-end
 
 

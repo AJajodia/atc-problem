@@ -117,18 +117,3 @@ airport_sectors %>%
   coord_sf(xlim = c(0, 15), ylim = c(0, 15))
 ```
 
-
-```{r}
-# sector_size = 5
-# 
-# griddf <- expand.grid(lat = seq(from = 0, by = 5, l = 3),
-#                       lng = seq(from = 0, by = 5, l = 3)) %>%
-#   mutate(
-#     xmin = lng,
-#     xmax = lng + sector_size,
-#     ymin = lat, 
-#     ymax = lat + sector_size, 
-#     sector_id = row_number()
-#   )
-```
-

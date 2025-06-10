@@ -97,6 +97,8 @@ w = Dict(sector => [@variable(m, binary = true) for f in 1:F, t in 1:T] for sect
     c[f,2] * start_df[N[f], f]
     for f in 1:F
         ))
+
+
 #@objective(m, Min, sum(
 #    c[f,1] * sum(t * (W(f, t, 1) - W(f, t-1, 1)) for t in Tjf(f, 1) if t > 1) -
 #    c[f,1] * timetable_df[f, :depart_time] +
