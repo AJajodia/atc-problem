@@ -1,0 +1,66 @@
+---
+title: "data_sim1"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+```
+
+
+```{r}
+holding_time <- .5
+turnaround_time <- .5
+sector_capacity <- 3
+ground_cost <- 5
+air_cost <- 10
+min_time <- 0
+time_buffer <- 60
+depart_capacity <- 5
+arrival_capacity <- 
+sector_count <- 2
+airspeed <- 3
+
+lats <- numeric(sector_count^2)
+longs <- numeric(sector_count^2)
+
+for (i in 1:sector_count) {
+  for (j in 1: sector_count) {
+    lat_range <- c(5 * i - 5, 5 * i)
+    long_range <- c(5 * j - 5, 5 * j)
+    lat <- runif(1, min = lat_range[1], max = lat_range[2])[1]
+    long <- runif(1, min = long_range[1], max = long_range[2])[1]
+    lats[sector_count * (i-1) + j] <- lat
+    longs[sector_count * (i-1) + j] <- long
+  }
+}
+
+airports <- tibble(sector = c(1:sector_count^2), lat = lats, long = longs, holding_time, turnaround_time, sector_capacity, ground_cost, air_cost, min_time, time_buffer, depart_capacity, arrival_capacity, sector_count, airspeed)
+```
+
+```{r}
+flight_count <- 20
+departure_times <- numeric(flight_count)
+arrival_times <- numeric(flight_count)
+depart_airport <- numeric(flight_count)
+arrive_airport <- numeric(flight_count)
+
+for (i in 1:20) {
+  airports_pair <- slice_sample(airports, n =  2)
+  A <- airports_pair[1,]
+  B <- airports_pair[2,]
+  departure_times[i] <- sample(1:24, 1)
+  depart_airport[i] <- A$sector
+  arrive_airport[i] <- B$sector
+  arrival_times[i] <- floor(sqrt((A$lat - B$lat)^2 +
+                             (A$long - B$long)^2)/airspeed + departure_times[i])
+}
+
+timetable <- tibble(depart_airport = depart_airport, arrive_airport = arrive_airport, depart_time = departure_times, arrival_time = arrival_times)
+```
+
+```{r}
+write.csv(airports, "airports.csv")
+write.csv(timetable, "timetable.csv")
+```
+
